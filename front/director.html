@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Director Dashboard - School Management System</title>
+    <link rel="stylesheet" href="director-dashboard-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-school"></i>
+                    <span>Director Panel</span>
+                </div>
+                <button class="close-sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#system-overview" class="nav-item" data-page="system-overview">
+                    <i class="fas fa-gauge"></i>
+                    <span>System Overview</span>
+                </a>
+                <a href="#user-management" class="nav-item" data-page="user-management">
+                    <i class="fas fa-users"></i>
+                    <span>User Management</span>
+                </a>
+                <a href="#announcements" class="nav-item" data-page="announcements">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Announcements</span>
+                </a>
+                <a href="#reports" class="nav-item" data-page="reports">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports & Analytics</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>School Settings</span>
+                </a>
+                <a href="#audit-logs" class="nav-item" data-page="audit-logs">
+                    <i class="fas fa-history"></i>
+                    <span>Audit & Logs</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="admin-profile">
+                    <div class="admin-avatar">DR</div>
+                    <div class="admin-info">
+                        <p class="admin-name">Director</p>
+                        <p class="admin-role">School Administrator</p>
+                    </div>
+                </div>
+                <button class="btn btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <header class="header">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">
+                    <h1 id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-icon" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    <button class="btn btn-icon" title="Messages">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                </div>
+            </header>
+            <div id="directorStatusMessage" class="status-message" role="status" aria-live="polite"></div>
+
+            <!-- PAGES CONTAINER -->
+            <div class="pages-container">
+
+                <!-- DASHBOARD PAGE -->
+                <div id="dashboard" class="page active">
+                    <div class="page-header">
+                        <h2>Welcome to Director Dashboard</h2>
+                        <p class="subtitle">Overall system control and management</p>
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="stat-card blue">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Students</p>
+                                <h3 class="stat-value" id="totalStudents">0</h3>
+                                <p class="stat-change">All enrolled students</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card green">
+                            <div class="stat-icon">
+                                <i class="fas fa-chalkboard-user"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Teachers</p>
+                                <h3 class="stat-value" id="totalTeachers">0</h3>
+                                <p class="stat-change">All staff members</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card orange">
+                            <div class="stat-icon">
+                                <i class="fas fa-hourglass-end"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Registrations</p>
+                                <h3 class="stat-value" id="dashPendingCount">0</h3>
+                                <p class="stat-change">All submitted registrations</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card purple">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Approved</p>
+                                <h3 class="stat-value" id="totalApproved">0</h3>
+                                <p class="stat-change">Registered users</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card red">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Registration Admins</p>
+                                <h3 class="stat-value" id="totalAdmins">0</h3>
+                                <p class="stat-change">Active admin accounts</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card teal">
+                            <div class="stat-icon">
+                                <i class="fas fa-megaphone"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Active Announcements</p>
+                                <h3 class="stat-value" id="totalAnnouncements">0</h3>
+                                <p class="stat-change">Current notifications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button class="action-btn" onclick="switchPage('user-management')">
+                                <i class="fas fa-users-cog"></i>
+                                <span>Manage<br>Users</span>
+                            </button>
+                            <button class="action-btn" onclick="switchPage('announcements')">
+                                <i class="fas fa-bullhorn"></i>
+                                <span>Send<br>Announcement</span>
+                            </button>
+                            <button class="action-btn" onclick="switchPage('reports')">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>View<br>Reports</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM OVERVIEW PAGE -->
+                <div id="system-overview" class="page">
+                    <div class="page-header">
+                        <h2>System Overview</h2>
+                        <p class="subtitle">Comprehensive system statistics and metrics</p>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3>Registration Status</h3>
+                            <div class="stat-group">
+                                <div class="stat-item">
+                                    <div class="stat-bar">
+                                        <div class="stat-bar-fill pending" style="width: 30%"></div>
+                                    </div>
+                                    <div class="stat-labels">
+                                        <span>Pending</span>
+                                        <span id="pending-count">0</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-bar">
+                                        <div class="stat-bar-fill approved" style="width: 60%"></div>
+                                    </div>
+                                    <div class="stat-labels">
+                                        <span>Approved</span>
+                                        <span id="approved-count">0</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-bar">
+                                        <div class="stat-bar-fill rejected" style="width: 10%"></div>
+                                    </div>
+                                    <div class="stat-labels">
+                                        <span>Rejected</span>
+                                        <span id="rejected-count">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Student Distribution by Grade</h3>
+                            <div class="grade-distribution">
+                                <div class="grade-item">
+                                    <span>Grade 9</span>
+                                    <div class="grade-bar">
+                                        <div class="grade-fill" style="width: 25%"></div>
+                                    </div>
+                                    <span id="grade9-count">0</span>
+                                </div>
+                                <div class="grade-item">
+                                    <span>Grade 10</span>
+                                    <div class="grade-bar">
+                                        <div class="grade-fill" style="width: 30%"></div>
+                                    </div>
+                                    <span id="grade10-count">0</span>
+                                </div>
+                                <div class="grade-item">
+                                    <span>Grade 11</span>
+                                    <div class="grade-bar">
+                                        <div class="grade-fill" style="width: 25%"></div>
+                                    </div>
+                                    <span id="grade11-count">0</span>
+                                </div>
+                                <div class="grade-item">
+                                    <span>Grade 12</span>
+                                    <div class="grade-bar">
+                                        <div class="grade-fill" style="width: 20%"></div>
+                                    </div>
+                                    <span id="grade12-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recent System Activity</h3>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon info">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p class="activity-title">New Student Registration</p>
+                                    <p class="activity-time">2 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon success">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p class="activity-title">Registration Approved</p>
+                                    <p class="activity-time">4 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon warning">
+                                    <i class="fas fa-exclamation"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p class="activity-title">Admin Account Created</p>
+                                    <p class="activity-time">1 day ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- USER MANAGEMENT PAGE -->
+                <div id="user-management" class="page">
+                    <div class="page-header">
+                        <h2>User Management</h2>
+                        <p class="subtitle">Manage students, teachers, and registration admins</p>
+                    </div>
+
+                    <!-- User Management Tabs -->
+                    <div class="user-tabs">
+                        <button class="user-tab active" onclick="switchUserTab('students')">
+                            <i class="fas fa-users"></i> Students
+                        </button>
+                        <button class="user-tab" onclick="switchUserTab('teachers')">
+                            <i class="fas fa-chalkboard-user"></i> Teachers
+                        </button>
+                        <button class="user-tab" onclick="switchUserTab('admins')">
+                            <i class="fas fa-user-shield"></i> Registration Admins
+                        </button>
+                    </div>
+
+                    <!-- STUDENTS TAB -->
+                    <div id="students-tab" class="user-content active">
+                        <div class="card">
+                            <h3>Registered Students</h3>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Grade Level</th>
+                                            <th>Section</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentsTable">
+                                        <!-- Will be populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TEACHERS TAB -->
+                    <div id="teachers-tab" class="user-content">
+                        <div class="card">
+                            <h3>Registered Teachers</h3>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Teacher ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Department</th>
+                                            <th>Subject</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="teachersTable">
+                                        <!-- Will be populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REGISTRATION ADMINS TAB -->
+                    <div id="admins-tab" class="user-content">
+                        <div class="card form-card">
+                            <h3>Create New Registration Admin</h3>
+                            <form onsubmit="handleCreateAdmin(event)">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Full Name *</label>
+                                        <input type="text" class="form-control" name="adminName" placeholder="Admin full name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email *</label>
+                                        <input type="email" class="form-control" name="adminEmail" placeholder="admin@school.com" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Department</label>
+                                        <input type="text" class="form-control" name="adminDept" placeholder="Registration Department">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Phone Number</label>
+                                        <input type="tel" class="form-control" name="adminPhone" placeholder="+1 (555) 123-4567">
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-user-plus"></i> Create Admin Account
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h3>Active Registration Admins</h3>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Admin ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Department</th>
+                                            <th>Created Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminsTable">
+                                        <!-- Will be populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANNOUNCEMENTS PAGE -->
+                <div id="announcements" class="page">
+                    <div class="page-header">
+                        <h2>Announcements</h2>
+                        <p class="subtitle">Send school-wide announcements to students and teachers</p>
+                    </div>
+
+                    <div class="card form-card">
+                        <h3>Create New Announcement</h3>
+                        <form onsubmit="handleCreateAnnouncement(event)">
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label>Announcement Title *</label>
+                                    <input type="text" class="form-control" name="title" placeholder="Enter announcement title" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label>Message *</label>
+                                    <textarea class="form-control" name="message" placeholder="Enter announcement message" rows="5" required></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Send To *</label>
+                                    <select class="form-control" name="sendTo" required>
+                                        <option value="">-- Select --</option>
+                                        <option value="all">All (Students & Teachers)</option>
+                                        <option value="students">Students Only</option>
+                                        <option value="teachers">Teachers Only</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Priority</label>
+                                    <select class="form-control" name="priority">
+                                        <option value="normal">Normal</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Send Announcement
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recent Announcements</h3>
+                        <div id="announcementsList" class="announcements-list">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTS PAGE -->
+                <div id="reports" class="page">
+                    <div class="page-header">
+                        <h2>Reports & Analytics</h2>
+                        <p class="subtitle">Generate enrollment and performance reports</p>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3>Generate Report</h3>
+                            <form onsubmit="handleGenerateReport(event)">
+                                <div class="form-group">
+                                    <label>Report Type *</label>
+                                    <select class="form-control" name="reportType" required>
+                                        <option value="">-- Select Report --</option>
+                                        <option value="enrollment">Enrollment Report</option>
+                                        <option value="by-grade">Students by Grade</option>
+                                        <option value="by-department">Teachers by Department</option>
+                                        <option value="certifications">Certifications Issued</option>
+                                        <option value="promotions">Student Promotions</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Date Range</label>
+                                    <select class="form-control" name="dateRange">
+                                        <option value="current">Current Month</option>
+                                        <option value="quarter">Current Quarter</option>
+                                        <option value="year">Current Year</option>
+                                        <option value="all">All Time</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-file-pdf"></i> Generate Report
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h3>Quick Stats</h3>
+                            <div class="quick-stats">
+                                <div class="quick-stat">
+                                    <span class="label">Total Registrations</span>
+                                    <span class="value" id="report-total-registrations">0</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Approved This Month</span>
+                                    <span class="value" id="report-approved-month">0</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Certifications Issued</span>
+                                    <span class="value" id="report-certificates">0</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Promotions</span>
+                                    <span class="value" id="report-promotions">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETTINGS PAGE -->
+                <div id="settings" class="page">
+                    <div class="page-header">
+                        <h2>School Settings</h2>
+                        <p class="subtitle">Configure school information and system settings</p>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card form-card">
+                            <h3>School Information</h3>
+                            <form onsubmit="handleSaveSettings(event)">
+                                <div class="form-group">
+                                    <label>School Name *</label>
+                                    <input type="text" class="form-control" name="schoolName" placeholder="School name" value="BENSE SECONDARY HIGH SCHOOL" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>School Email *</label>
+                                    <input type="email" class="form-control" name="schoolEmail" placeholder="school@email.com" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>School Phone *</label>
+                                    <input type="tel" class="form-control" name="schoolPhone" placeholder="+1 (555) 123-4567" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>School Address</label>
+                                    <textarea class="form-control" name="schoolAddress" rows="3" placeholder="Full address"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                            </form>
+                        </div>
+
+                        <div class="card form-card">
+                            <h3>Academic Calendar</h3>
+                            <form onsubmit="handleSaveAcademicCalendar(event)">
+                                <div class="form-group">
+                                    <label>Current Academic Year *</label>
+                                    <input type="text" class="form-control" name="academicYear" placeholder="2024-2025" value="2024-2025" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>School Opening Date *</label>
+                                    <input type="date" class="form-control" name="openingDate" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>First Term End Date *</label>
+                                    <input type="date" class="form-control" name="term1End" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>School Closing Date *</label>
+                                    <input type="date" class="form-control" name="closingDate" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Calendar</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card form-card">
+                        <h3>System Settings</h3>
+                        <div class="settings-group">
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <h4>Enable Student Registration</h4>
+                                    <p>Allow new students to register</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <h4>Enable Teacher Registration</h4>
+                                    <p>Allow new teachers to register</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <h4>Require Email Verification</h4>
+                                    <p>No approval workflow is used</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <h4>Auto-Approve Registrations</h4>
+                                    <p>Registrations are always auto-approved</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUDIT LOGS PAGE -->
+                <div id="audit-logs" class="page">
+                    <div class="page-header">
+                        <h2>Audit & Logs</h2>
+                        <p class="subtitle">View system activity and audit trail</p>
+                    </div>
+
+                    <div class="filter-bar">
+                        <select class="form-control" id="logFilter">
+                            <option value="all">All Activities</option>
+                            <option value="approvals">User Status Actions</option>
+                            <option value="rejections">Rejections</option>
+                            <option value="user-actions">User Actions</option>
+                            <option value="admin-actions">Admin Actions</option>
+                        </select>
+                    </div>
+
+                    <div class="card">
+                        <h3>System Activity Log</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTable">
+                                    <!-- Will be populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL FOR VIEWING DETAILS -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Details</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <!-- Content will be populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Action</h3>
+                <button class="close-modal" onclick="closeStatusConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="statusConfirmText">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStatusConfirmModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmStatusChange()">Yes, Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="director-script.js?v=20260304-5"></script>
+</body>
+</html>

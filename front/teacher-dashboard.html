@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal - Dashboard</title>
+    <link rel="stylesheet" href="teacher-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-chalkboard-user"></i>
+                    <span>TeacherHub</span>
+                </div>
+                <button class="hamburger" id="hamburgerBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#submissions" class="nav-item" data-page="submissions">
+                    <i class="fas fa-file-upload"></i>
+                    <span>Submissions</span>
+                    <span class="badge" id="submissionBadge">0</span>
+                </a>
+                <a href="#grading" class="nav-item" data-page="grading">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Grading</span>
+                </a>
+                <a href="#classes" class="nav-item" data-page="classes">
+                    <i class="fas fa-users"></i>
+                    <span>Classes</span>
+                </a>
+                <a href="#schedule" class="nav-item" data-page="schedule">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Schedule</span>
+                </a>
+                <a href="#announcements" class="nav-item" data-page="announcements">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Announcements</span>
+                </a>
+                <a href="#resources" class="nav-item" data-page="resources">
+                    <i class="fas fa-book"></i>
+                    <span>Resources</span>
+                </a>
+                <a href="#reports" class="nav-item" data-page="reports">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="#profile" class="nav-item" data-page="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search..." id="searchInput">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="user-profile">
+                        <img id="userAvatar" src="https://via.placeholder.com/40" alt="Teacher Avatar" class="avatar">
+                        <div class="user-info">
+                            <p id="userName" class="user-name">Teacher Name</p>
+                            <p id="userDept" class="user-dept">Department</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content">
+                <div id="teacherPageMessage" class="teacher-page-message" style="display: none;"></div>
+
+                <!-- DASHBOARD PAGE -->
+                <div id="dashboard" class="page active">
+                    <div class="dashboard-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon classes">
+                                <i class="fas fa-chalkboard"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Classes</p>
+                                <p class="stat-value" id="totalClasses">0</p>
+                            </div>
+                        </div>
+
+                        <div class="card stat-card">
+                            <div class="stat-icon submissions">
+                                <i class="fas fa-inbox"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Pending Submissions</p>
+                                <p class="stat-value" id="pendingSubmissions">0</p>
+                            </div>
+                        </div>
+
+                        <div class="card stat-card">
+                            <div class="stat-icon grading">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Pending Grading</p>
+                                <p class="stat-value" id="pendingGrading">0</p>
+                            </div>
+                        </div>
+
+                        <div class="card stat-card">
+                            <div class="stat-icon students">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Students</p>
+                                <p class="stat-value" id="totalStudents">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid two-col">
+                        <div class="card">
+                            <h3>Recent Submissions</h3>
+                            <div id="recentSubmissionsContainer" class="submissions-list">
+                                <!-- Will be populated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Grading Status</h3>
+                            <div id="gradingStatusContainer" class="status-list">
+                                <!-- Will be populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMISSIONS PAGE -->
+                <div id="submissions" class="page">
+                    <div class="page-header">
+                        <h2>Student Submissions</h2>
+                        <div class="filter-section">
+                            <select id="classFilterSubmissions" class="filter-select">
+                                <option value="">All Classes</option>
+                            </select>
+                            <select id="statusFilterSubmissions" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="submitted">Submitted (Unseen)</option>
+                                <option value="seen">Seen by Teacher</option>
+                                <option value="graded">Graded</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Student / Group</th>
+                                    <th>Submission Type</th>
+                                    <th>Assignment</th>
+                                    <th>Submitted Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissionsTableBody">
+                                <!-- Will be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- GRADING PAGE -->
+                <div id="grading" class="page">
+                    <div class="page-header">
+                        <h2>Grading Management</h2>
+                    </div>
+
+                    <div class="grading-step-tabs">
+                        <button type="button" id="gradingTabStep2" class="grading-step-tab active" onclick="switchGradingStep('step2')">
+                            <i class="fas fa-check-circle"></i> Step 2: Grade Students
+                        </button>
+                        <button type="button" id="gradingTabStep1" class="grading-step-tab" onclick="switchGradingStep('step1')">
+                            <i class="fas fa-sliders-h"></i> Step 1: Assessment Structure
+                        </button>
+                    </div>
+
+                    <div id="gradingStepTwoPanel" class="grading-step-panel active">
+                        <div class="card grading-card">
+                            <div class="setup-header">
+                                <h3>Step 2: Grade Students</h3>
+                                <p class="subtitle">Select grade, section, and subject to enter student grades</p>
+                            </div>
+
+                            <div class="grading-section">
+                                <div class="class-selection-section">
+                                    <h4>Select Grade, Section, and Subject</h4>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Choose Grade:</label>
+                                            <select id="classSelectForGrading" class="form-control" onchange="onGradingClassChange()">
+                                                <option value="">-- Choose a grade --</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Choose Section:</label>
+                                            <select id="sectionSelectForGrading" class="form-control" onchange="onGradingSectionChange()">
+                                                <option value="">-- Choose grade first --</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Choose Subject:</label>
+                                            <select id="gradingSubjectSelect" class="form-control" onchange="onGradingSubjectChange()">
+                                                <option value="">-- Choose grade and section first --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="grading-actions" style="margin-top: 10px;">
+                                        <button type="button" class="btn btn-primary" onclick="loadStudentsForGrading()">
+                                            <i class="fas fa-list"></i> Load Students
+                                        </button>
+                                    </div>
+                                    <div id="gradingScoresMessage" class="teacher-inline-message" style="display: none; margin-top: 10px;"></div>
+                                    <div id="gradingDecisionPrompt" class="teacher-inline-message teacher-inline-info" style="display: none; margin-top: 10px;"></div>
+                                </div>
+
+                                <div class="grading-table-section" id="gradingTableSection" style="display: none;">
+                                    <h4>Enter Grades for Students</h4>
+                                    <p class="subtitle" style="margin-bottom: 15px;">Note: You can save grades incrementally. Click Update for individual students or Submit All to save all at once.</p>
+                                    <div class="table-container">
+                                        <table class="grading-table" id="gradingTable">
+                                            <thead>
+                                                <tr id="gradingTableHeader">
+                                                    <th>Student ID</th>
+                                                    <th>Student Name</th>
+                                                    <!-- Assessment columns will be added dynamically -->
+                                                    <th>Total Grade</th>
+                                                    <th>Grade Letter</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="gradingTableBody">
+                                                <!-- Will be populated after class selection -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="grading-actions">
+                                        <button class="btn btn-primary" onclick="submitAllGrades()">
+                                            <i class="fas fa-check"></i> Submit All Grades
+                                        </button>
+                                        <div id="gradingBulkMessage" class="teacher-inline-message" style="display: none; margin-top: 8px;"></div>
+                                    </div>
+                                </div>
+
+                                <div id="gradingHistoryTables" style="display: none; margin-top: 16px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="gradingStepOnePanel" class="grading-step-panel">
+                        <div class="card setup-card">
+                            <div class="setup-header">
+                                <h3>Step 1: Assessment Structure Setup</h3>
+                                <p class="subtitle">Select grade and subject, then create or update assessment structure</p>
+                            </div>
+
+                            <div class="setup-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Select Grade:</label>
+                                        <select id="classSelectGrading" class="form-control" onchange="onStepOneGradeChange()">
+                                            <option value="">-- Choose a grade --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Select Section:</label>
+                                        <select id="sectionSelectGrading" class="form-control" onchange="onStepOneSectionChange()">
+                                            <option value="">-- Choose grade first --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Select Subject:</label>
+                                        <select id="subjectSelectGrading" class="form-control" onchange="onStepOneSubjectChange()">
+                                            <option value="">-- Choose grade and section first --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="assessmentEditorPanel" style="display: none;">
+                                    <div class="assessment-items" id="assessmentItemsContainer"></div>
+
+                                    <button class="btn btn-secondary" onclick="addAssessmentItem()">
+                                        <i class="fas fa-plus"></i> Add Assessment Type
+                                    </button>
+
+                                    <div class="total-section">
+                                        <label>Total Points:</label>
+                                        <p class="total-value" id="totalPointsDisplay">0</p>
+                                    </div>
+
+                                    <button class="btn btn-primary" onclick="saveAssessmentStructure()">
+                                        <i class="fas fa-save"></i> Save Assessment Structure
+                                    </button>
+                                    <div id="assessmentStructureMessage" class="teacher-inline-message" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLASSES PAGE -->
+                <div id="classes" class="page">
+                    <div class="page-header">
+                        <h2>My Classes</h2>
+                        <p class="subtitle">View classes assigned to you</p>
+                    </div>
+
+                    <div id="classesContainer" class="classes-grid">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- SCHEDULE PAGE -->
+                <div id="schedule" class="page">
+                    <div class="page-header">
+                        <h2>My Teaching Schedule</h2>
+                        <p class="subtitle">Classes, subjects, and time slots assigned to you</p>
+                    </div>
+
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Monday</th>
+                                    <th>Tuesday</th>
+                                    <th>Wednesday</th>
+                                    <th>Thursday</th>
+                                    <th>Friday</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherScheduleTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center;color:#6b7280;">No schedule found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ANNOUNCEMENTS PAGE -->
+                <div id="announcements" class="page">
+                    <div class="page-header">
+                        <h2>Announcements</h2>
+                        <button class="btn btn-primary" onclick="openAnnouncementModal()">
+                            <i class="fas fa-plus"></i> New Announcement
+                        </button>
+                    </div>
+
+                    <div id="announcementsContainer" class="announcements-list">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- RESOURCES PAGE -->
+                <div id="resources" class="page">
+                    <div class="page-header">
+                        <h2>Course Resources</h2>
+                        <button class="btn btn-primary" onclick="openResourceModal()">
+                            <i class="fas fa-plus"></i> Upload Resource
+                        </button>
+                    </div>
+
+                    <div class="filter-section">
+                        <select id="classFilterResources" class="filter-select">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+
+                    <div id="resourcesContainer" class="resources-grid">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- REPORTS PAGE -->
+                <div id="reports" class="page">
+                    <div class="page-header">
+                        <h2>Grade Reports</h2>
+                        <p class="subtitle">Generate and submit grade reports to administration</p>
+                    </div>
+
+                    <div class="card report-setup">
+                        <h3>Generate Grade Report</h3>
+                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Reports can only be generated after all grades are submitted. Select the class and section to generate.</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Select Class:</label>
+                                <select id="classSelectReports" class="form-control">
+                                    <option value="">-- Choose a class --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Section (if available):</label>
+                                <select id="sectionSelectReports" class="form-control">
+                                    <option value="">-- Choose section --</option>
+                                    <option value="A">Section A</option>
+                                    <option value="B">Section B</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            <i class="fas fa-file-pdf"></i> Generate Report for Admin
+                        </button>
+                    </div>
+
+                    <div id="reportsContainer" class="reports-list">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- PROFILE PAGE -->
+                <div id="profile" class="page">
+                    <div class="page-header">
+                        <h2>Teacher Profile</h2>
+                    </div>
+
+                    <div class="card profile-card">
+                        <div class="profile-header">
+                            <img id="profileAvatar" src="https://via.placeholder.com/120" alt="Profile" class="profile-avatar">
+                            <div class="profile-info">
+                                <h3 id="profileName">Teacher Name</h3>
+                                <p id="profileDept">Department</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-details">
+                            <div class="detail-row">
+                                <label>Employee ID:</label>
+                                <p id="profileEmpID">EMP123</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Email:</label>
+                                <p id="profileEmail">teacher@school.com</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Phone:</label>
+                                <p id="profilePhone">+1 (555) 123-4567</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Office:</label>
+                                <p id="profileOffice">Room 301</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Office Hours:</label>
+                                <p id="profileOfficeHours">Mon-Fri, 3:00 PM - 4:00 PM</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Experience:</label>
+                                <p id="profileExperience">10+ Years</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Submission Details Modal -->
+    <div id="submissionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSubmissionModal()">&times;</span>
+            <h2>Submission Details</h2>
+            <div id="submissionDetails">
+                <!-- Will be populated by JS -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="markSubmissionAsSeen()">
+                    <i class="fas fa-check"></i> Mark as Seen
+                </button>
+                <button class="btn btn-primary" onclick="openGradingPanel()">
+                    <i class="fas fa-edit"></i> Grade This
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcement Modal -->
+    <div id="announcementModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAnnouncementModal()">&times;</span>
+            <h2>New Announcement</h2>
+            <div class="form-group">
+                <label>Target Mode:</label>
+                <select id="announcementTargetMode" class="form-control" onchange="onAnnouncementTargetModeChange()">
+                    <option value="single">Single assigned class</option>
+                    <option value="multiple">Multiple assigned classes</option>
+                    <option value="all_assigned">All assigned classes</option>
+                </select>
+            </div>
+            <div class="form-group" id="announcementSingleClassGroup">
+                <label>Select Class:</label>
+                <select id="announcementClassSelect" class="form-control">
+                    <option value="">-- Choose a class --</option>
+                </select>
+            </div>
+            <div class="form-group" id="announcementMultiClassGroup" style="display:none;">
+                <label>Select Classes (multiple):</label>
+                <select id="announcementClassMultiSelect" class="form-control" multiple size="6"></select>
+            </div>
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" id="announcementTitle" class="form-control" placeholder="Announcement title">
+            </div>
+            <div class="form-group">
+                <label>Content:</label>
+                <textarea id="announcementContent" class="form-control" rows="5" placeholder="Announcement content"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Attach File (Optional):</label>
+                <div class="file-upload-area" id="announcementFileUploadArea" style="margin-top: 10px;">
+                    <i class="fas fa-paperclip"></i>
+                    <p>Drag file here or click to browse</p>
+                    <input type="file" id="announcementFile" class="file-input" />
+                </div>
+                <div style="margin-top: 8px;">
+                    <button type="button" class="btn btn-secondary" onclick="openAnnouncementFilePicker()">
+                        <i class="fas fa-folder-open"></i> Browse File
+                    </button>
+                </div>
+                <div id="announcementFilePreview" class="file-preview-item" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-file"></i>
+                    <span id="announcementFileName">file-name.pdf</span>
+                    <button type="button" class="btn-remove-file" onclick="removeAnnouncementFile()">Remove</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveAnnouncement()">Post Announcement</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resource Modal -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeResourceModal()">&times;</span>
+            <h2>Upload Resource</h2>
+            <div class="form-group">
+                <label>Target Mode:</label>
+                <select id="resourceTargetMode" class="form-control" onchange="onResourceTargetModeChange()">
+                    <option value="single">Single assigned class</option>
+                    <option value="multiple">Multiple assigned classes</option>
+                    <option value="all_assigned">All assigned classes</option>
+                </select>
+            </div>
+            <div class="form-group" id="resourceSingleClassGroup">
+                <label>Select Class:</label>
+                <select id="resourceClassSelect" class="form-control">
+                    <option value="">-- Select a class --</option>
+                </select>
+            </div>
+            <div class="form-group" id="resourceMultiClassGroup" style="display:none;">
+                <label>Select Classes (multiple):</label>
+                <select id="resourceClassMultiSelect" class="form-control" multiple size="6"></select>
+            </div>
+            <div class="form-group">
+                <label>Resource Title:</label>
+                <input type="text" id="resourceTitle" class="form-control" placeholder="Resource title">
+            </div>
+            <div class="form-group">
+                <label>Type:</label>
+                <select id="resourceType" class="form-control">
+                    <option value="resource">Resource</option>
+                    <option value="assignment">Assignment</option>
+                    <option value="project">Project</option>
+                    <option value="worksheet">Worksheet</option>
+                    <option value="book">Book</option>
+                    <option value="pdf">PDF</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Deadline (optional):</label>
+                <input type="date" id="resourceDueDate" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Description / Instruction:</label>
+                <textarea id="resourceDescription" class="form-control" rows="4" placeholder="Assignment instructions, project requirements, notes..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Upload File:</label>
+                <div class="file-upload-area" id="resourceUploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag file here or click to browse</p>
+                    <input type="file" id="resourceFile" class="file-input" />
+                </div>
+                <div style="margin-top: 8px;">
+                    <button type="button" class="btn btn-secondary" onclick="openResourceFilePicker()">
+                        <i class="fas fa-folder-open"></i> Browse File
+                    </button>
+                </div>
+                <div id="resourceFilePreview" class="file-preview-item" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-file"></i>
+                    <span id="resourceFileName">file-name.pdf</span>
+                    <button type="button" class="btn-remove-file" onclick="removeResourceFile()">Remove</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeResourceModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveResource()">Upload Resource</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="teacher-script.js?v=20260306-17"></script>
+</body>
+</html>
