@@ -1179,7 +1179,6 @@ ALTER TABLE `announcements`
 ALTER TABLE `assessment_structures`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_structure` (`teacher_username`,`class_id`,`subject_id`,`term`,`academic_year_id`),
-  ADD UNIQUE KEY `uk_structure_v2` (`teacher_username`,`grade_level`,`subject_id`,`term`,`academic_year_id`),
   ADD KEY `idx_as_subject` (`subject_id`),
   ADD KEY `idx_as_year` (`academic_year_id`),
   ADD KEY `fk_as_class` (`class_id`);

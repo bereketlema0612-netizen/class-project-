@@ -237,6 +237,13 @@
                                                 <option value="">-- Choose grade and section first --</option>
                                             </select>
                                         </div>
+                                        <div class="form-group">
+                                            <label>Choose Term / Semester:</label>
+                                            <select id="gradingTermSelect" class="form-control" onchange="onGradingTermChange()">
+                                                <option value="Term1">First Semester</option>
+                                                <option value="Term2">Second Semester</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="grading-actions" style="margin-top: 10px;">
                                         <button type="button" class="btn btn-primary" onclick="loadStudentsForGrading()">
@@ -296,15 +303,22 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Select Section:</label>
-                                        <select id="sectionSelectGrading" class="form-control" onchange="onStepOneSectionChange()">
-                                            <option value="">-- Choose grade first --</option>
-                                        </select>
+                                        <label>Apply To Assigned Sections:</label>
+                                        <div id="sectionCheckboxesGrading" class="form-control" style="min-height: 120px; overflow-y: auto; padding: 12px;">
+                                            <div style="color:#6b7280;">Choose grade first</div>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Select Subject:</label>
                                         <select id="subjectSelectGrading" class="form-control" onchange="onStepOneSubjectChange()">
-                                            <option value="">-- Choose grade and section first --</option>
+                                            <option value="">-- Choose grade and section(s) first --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Select Term / Semester:</label>
+                                        <select id="structureTermSelect" class="form-control" onchange="onStepOneSubjectChange()">
+                                            <option value="Term1">First Semester</option>
+                                            <option value="Term2">Second Semester</option>
                                         </select>
                                     </div>
                                 </div>
@@ -638,6 +652,6 @@
         </div>
     </div>
 
-    <script src="teacher-script.js?v=20260306-17"></script>
+    <script src="teacher-script.js?v=20260307-01"></script>
 </body>
 </html>

@@ -34,6 +34,47 @@ $director_username = $_SESSION['username'];
 $conn->begin_transaction();
 
 try {
+    if (!$conn->query("
+        CREATE TABLE IF NOT EXISTS school_settings (
+            id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            school_name VARCHAR(150) NOT NULL,
+            email VARCHAR(120) NOT NULL,
+            phone VARCHAR(40) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            current_academic_year VARCHAR(30) NOT NULL,
+            school_opening_date DATE DEFAULT NULL,
+            school_closing_date DATE DEFAULT NULL,
+            term1_start_date DATE DEFAULT NULL,
+            term1_end_date DATE DEFAULT NULL,
+            term2_start_date DATE DEFAULT NULL,
+            term2_end_date DATE DEFAULT NULL,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ")) {
+        throw new Exception("Failed to ensure school settings table: " . $conn->error);
+    }
+
+    $ensureStmt = $conn->prepare("SELECT id FROM school_settings WHERE id = 1 LIMIT 1");
+    if (!$ensureStmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
+    }
+    $ensureStmt->execute();
+    $ensureResult = $ensureStmt->get_result();
+    if ($ensureResult->num_rows === 0) {
+        $seedStmt = $conn->prepare("
+            INSERT INTO school_settings
+                (id, school_name, email, phone, address, current_academic_year, school_opening_date, school_closing_date, term1_start_date, term1_end_date, term2_start_date, term2_end_date)
+            VALUES (1, '', '', '', '', '', NULL, NULL, NULL, NULL, NULL, NULL)
+        ");
+        if (!$seedStmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+        if (!$seedStmt->execute()) {
+            throw new Exception("Initial insert failed: " . $seedStmt->error);
+        }
+    }
+
     $stmt = $conn->prepare("UPDATE school_settings SET school_name = ?, email = ?, phone = ?, address = ?, current_academic_year = ?, school_opening_date = ?, school_closing_date = ?, term1_start_date = ?, term1_end_date = ?, term2_start_date = ?, term2_end_date = ?, updated_at = NOW() WHERE id = 1");
     
     if (!$stmt) {

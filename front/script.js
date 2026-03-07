@@ -1,4 +1,4 @@
-// Student portal (real API version)
+﻿// Student portal (real API version)
 
 const API = {
     profile: '../backend/student/get_students_profile.php',
@@ -248,14 +248,40 @@ function renderGrades(semesterValue) {
         const section = document.createElement('div');
         section.className = 'card subject-section collapsed';
 
+        const assessmentColumns = [];
+        grouped[subject].forEach((g) => {
+            (g.assessment_items || []).forEach((item) => {
+                const key = String(item.id || item.name || '');
+                if (!assessmentColumns.some((col) => col.key === key)) {
+                    assessmentColumns.push({
+                        key,
+                        name: item.name || 'Assessment',
+                        max_points: Number(item.max_points || 0),
+                        order: Number(item.order || 0)
+                    });
+                }
+            });
+        });
+        assessmentColumns.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+
         const rows = grouped[subject].map((g) => `
             <tr>
                 <td>${escapeHtml(g.term || '-')}</td>
                 <td>${escapeHtml(g.academic_year || '-')}</td>
-                <td>${escapeHtml(String(g.marks ?? '-'))}</td>
-                <td>${escapeHtml(g.letter_grade || '-')}</td>
+                ${assessmentColumns.map((col) => {
+                    const item = (g.assessment_items || []).find((entry) => String(entry.id || entry.name || '') === col.key);
+                    if (!item) return '<td>-</td>';
+                    if (item.score === null || item.score === undefined || item.score === '') return '<td></td>';
+                    return `<td>${escapeHtml(String(item.score))}</td>`;
+                }).join('')}
+                <td>${g.is_complete ? escapeHtml(String(g.marks ?? '')) : ''}</td>
+                <td>${g.is_complete ? escapeHtml(g.letter_grade || '') : ''}</td>
                 <td>${escapeHtml(g.teacher_name || '-')}</td>
             </tr>
+        `).join('');
+
+        const assessmentHeaderHtml = assessmentColumns.map((col) => `
+            <th>${escapeHtml(col.name)}${col.max_points > 0 ? `<br><small>(/${escapeHtml(String(col.max_points))})</small>` : ''}</th>
         `).join('');
 
         section.innerHTML = `
@@ -269,6 +295,7 @@ function renderGrades(semesterValue) {
                         <tr>
                             <th>Term</th>
                             <th>Academic Year</th>
+                            ${assessmentHeaderHtml}
                             <th>Marks</th>
                             <th>Grade</th>
                             <th>Teacher</th>
@@ -376,11 +403,6 @@ function renderAssessments() {
             const card = document.createElement('div');
             card.className = 'download-card';
             const href = `../backend/${encodeURI(String(a.file_path || '').replace(/^\/+/, ''))}`;
-            const submitBtn = isSubmittableResource(a)
-                ? `<button class="btn btn-primary" style="margin-left:8px;" onclick="prefillSubmission(${Number(a.id || 0)})">
-                        <i class="fas fa-paper-plane"></i> Submit Work
-                   </button>`
-                : '';
             card.innerHTML = `
                 <div class="download-header">
                     <i class="fas fa-file"></i>
@@ -395,7 +417,6 @@ function renderAssessments() {
                 <button class="btn btn-secondary" onclick="downloadFile('${escapeHtml(href)}', '${escapeHtml(a.file_name || a.title || 'file')}')">
                     <i class="fas fa-download"></i> Download Assignment
                 </button>
-                ${submitBtn}
             `;
             container.appendChild(card);
         });
@@ -665,6 +686,18 @@ function clearSubmissionForm() {
     removeSelectedFile();
 }
 
+function toggleSubmissionForm(forceOpen = null) {
+    const container = document.getElementById('submissionFormContainer');
+    const button = document.getElementById('toggleSubmissionFormBtn');
+    if (!container || !button) return;
+
+    const shouldOpen = forceOpen === null ? container.style.display === 'none' : Boolean(forceOpen);
+    container.style.display = shouldOpen ? 'flex' : 'none';
+    button.innerHTML = shouldOpen
+        ? '<i class="fas fa-times"></i> Hide Submission Form'
+        : '<i class="fas fa-upload"></i> Load Submission Form';
+}
+
 function populateAssessmentDropdown() {
     const assessmentSelect = document.getElementById('assessmentSelect');
     if (!assessmentSelect) return;
@@ -686,6 +719,7 @@ function populateAssessmentDropdown() {
 
 function prefillSubmission(resourceId) {
     switchPage('assessments');
+    toggleSubmissionForm(true);
     const assessmentSelect = document.getElementById('assessmentSelect');
     if (!assessmentSelect) return;
     assessmentSelect.value = String(resourceId);
@@ -778,3 +812,4 @@ function showSubmissionInlineMessage(message, type = 'success', hideAfterMs = 22
         }, hideAfterMs);
     }
 }
+

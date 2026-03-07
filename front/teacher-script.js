@@ -44,6 +44,7 @@ const state = {
         term: 'Term1'
     },
     currentHistoryTables: [],
+    pendingHistoryPrompt: false,
     pendingHistoryDecisionResolver: null,
     derived: {
         pendingGrading: 0,
@@ -410,22 +411,39 @@ function populateSectionsForSelectedGrade(selectedGrade) {
 }
 
 function populateSectionsForStepOne(selectedGrade) {
-    const sectionSelect = document.getElementById('sectionSelectGrading');
-    if (!sectionSelect) return;
+    const container = document.getElementById('sectionCheckboxesGrading');
+    if (!container) return;
 
     if (!selectedGrade) {
-        sectionSelect.innerHTML = '<option value="">-- Choose grade first --</option>';
+        container.innerHTML = '<div style="color:#6b7280;">Choose grade first</div>';
         return;
     }
 
     const sections = [...new Set(classesForSelectedGrade(selectedGrade).map((c) => normalizeSectionValue(c.section)).filter(Boolean))];
-    sectionSelect.innerHTML = '<option value="">-- Choose section --</option>';
-    sections.forEach((s) => {
-        const option = document.createElement('option');
-        option.value = s;
-        option.textContent = `Section ${s}`;
-        sectionSelect.appendChild(option);
-    });
+    if (!sections.length) {
+        container.innerHTML = '<div style="color:#6b7280;">No assigned sections for this grade</div>';
+        return;
+    }
+
+    container.innerHTML = sections.map((s) => `
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;">
+            <input type="checkbox" class="grading-section-checkbox" value="${escapeHtml(s)}" onchange="onStepOneSectionChange()">
+            <span>Section ${escapeHtml(s)}</span>
+        </label>
+    `).join('');
+}
+
+function getSelectedStepOneSections() {
+    return [...document.querySelectorAll('.grading-section-checkbox:checked')]
+        .map((el) => normalizeSectionValue(el.value))
+        .filter(Boolean);
+}
+
+function getSelectedStepOneClasses() {
+    const grade = document.getElementById('classSelectGrading')?.value || '';
+    const sections = getSelectedStepOneSections();
+    if (!grade || !sections.length) return [];
+    return classesForSelectedGrade(grade).filter((c) => sections.includes(normalizeSectionValue(c.section)));
 }
 
 async function loadSubmissions() {
@@ -792,6 +810,14 @@ async function onGradingClassChange() {
     showGradingScoresMessage('', 'info', false);
 }
 
+function onGradingTermChange() {
+    const sectionEl = document.getElementById('gradingTableSection');
+    if (sectionEl) sectionEl.style.display = 'none';
+    renderHistoryTables([]);
+    hideGradingDecisionPrompt();
+    showGradingScoresMessage('', 'info', false);
+}
+
 async function onGradingSectionChange() {
     await loadClassSubjectsForGrading();
     const sectionEl = document.getElementById('gradingTableSection');
@@ -876,23 +902,19 @@ function updateTotalPoints() {
 
 async function saveAssessmentStructure() {
     const selectedGrade = document.getElementById('classSelectGrading')?.value || '';
-    const selectedSection = document.getElementById('sectionSelectGrading')?.value || '';
     const selectedSubject = document.getElementById('subjectSelectGrading')?.value || '';
+    const selectedTerm = document.getElementById('structureTermSelect')?.value || 'Term1';
+    const selectedClasses = getSelectedStepOneClasses();
     if (!selectedGrade) {
         showAssessmentStructureMessage('Please select grade first.', 'error');
         return;
     }
-    if (!selectedSection) {
-        showAssessmentStructureMessage('Please select section first.', 'error');
+    if (!selectedClasses.length) {
+        showAssessmentStructureMessage('Please select one or more assigned sections.', 'error');
         return;
     }
     if (!selectedSubject) {
         showAssessmentStructureMessage('Please select subject first.', 'error');
-        return;
-    }
-    const selectedClass = classForSelectedGradeAndSection(selectedGrade, selectedSection);
-    if (!selectedClass?.class_id) {
-        showAssessmentStructureMessage('Selected grade/section class not found.', 'error');
         return;
     }
 
@@ -909,15 +931,17 @@ async function saveAssessmentStructure() {
     }
 
     try {
-        await apiPost(API.saveAssessmentStructure, {
-            class_id: Number(selectedClass.class_id),
+        const result = await apiPost(API.saveAssessmentStructure, {
+            class_id: Number(selectedClasses[0].class_id),
+            class_ids: selectedClasses.map((c) => Number(c.class_id)),
             grade_level: normalizeGradeValue(selectedGrade),
             subject: selectedSubject,
-            term: 'Term1',
+            term: selectedTerm,
             status: 'active',
             items
         });
-        showAssessmentStructureMessage('Assessment structure saved to database.', 'success');
+        state.pendingHistoryPrompt = Boolean(result?.history_prompt_needed);
+        showAssessmentStructureMessage(`Assessment structure saved for ${selectedClasses.length} section(s).`, 'success');
     } catch (err) {
         showAssessmentStructureMessage(err.message, 'error');
     }
@@ -927,6 +951,7 @@ async function loadStudentsForGrading(showLoadedMessage = true) {
     const selectedGrade = document.getElementById('classSelectForGrading')?.value || '';
     const selectedSection = document.getElementById('sectionSelectForGrading')?.value || '';
     const subject = document.getElementById('gradingSubjectSelect')?.value || '';
+    const term = document.getElementById('gradingTermSelect')?.value || 'Term1';
     const sectionEl = document.getElementById('gradingTableSection');
     if (!selectedGrade) {
         showGradingScoresMessage('Please choose grade first.', 'error', true);
@@ -953,11 +978,11 @@ async function loadStudentsForGrading(showLoadedMessage = true) {
             return;
         }
 
-        const baseUrl = `${API.getAssessmentScores}?class_id=${selectedClass.class_id}&subject=${encodeURIComponent(subject)}&term=Term1`;
+        const baseUrl = `${API.getAssessmentScores}?class_id=${selectedClass.class_id}&subject=${encodeURIComponent(subject)}&term=${encodeURIComponent(term)}`;
         let data = await apiGet(baseUrl);
 
-        // Ask only when teacher explicitly loads students from Step 2.
-        if (showLoadedMessage && Number(data.history_count || 0) > 0) {
+        // Ask only immediately after a changed structure created history.
+        if (showLoadedMessage && state.pendingHistoryPrompt && Number(data.history_count || 0) > 0) {
             const decision = await askHistoryDecision(Number(data.history_count || 0));
             if (decision === 'include') {
                 data = await apiGet(`${baseUrl}&include_history=1`);
@@ -966,12 +991,13 @@ async function loadStudentsForGrading(showLoadedMessage = true) {
                     snapshot_id: 0,
                     class_id: Number(selectedClass.class_id),
                     subject,
-                    term: 'Term1'
+                    term
                 });
                 data = await apiGet(baseUrl);
                 showGradingScoresMessage('Previous assessment table(s) deleted. New table loaded.', 'success', true);
             }
             hideGradingDecisionPrompt();
+            state.pendingHistoryPrompt = false;
         }
 
         if (!data.has_structure) {
@@ -986,7 +1012,7 @@ async function loadStudentsForGrading(showLoadedMessage = true) {
         state.currentAssessmentContext = {
             class_id: Number(selectedClass.class_id),
             subject,
-            term: 'Term1'
+            term
         };
         buildGradingTable(state.currentAssessmentItems, state.currentStudents, data.scores || {});
         state.currentHistoryTables = data.history_tables || [];
@@ -1024,14 +1050,20 @@ function buildGradingTable(items, students, scoreMap) {
         tr.dataset.studentUsername = String(s.student_username || '');
         let html = `<td>${escapeHtml(s.student_username)}</td><td>${escapeHtml(s.full_name || s.student_username)}</td>`;
         let studentTotal = 0;
+        let hasMissingScore = false;
         items.forEach((a) => {
             const itemId = String(a.id);
             const maxPoints = Number(a.max_points ?? a.points ?? 0);
-            const existingScore = Number(scoreMap?.[s.student_username]?.[itemId] ?? 0);
-            studentTotal += existingScore;
-            html += `<td><input type="number" class="grade-input" min="0" max="${maxPoints}" data-item-id="${itemId}" data-max-points="${maxPoints}" value="${existingScore}" oninput="updateStudentTotal(this, false)" onchange="updateStudentTotal(this, true)"></td>`;
+            const rawExistingScore = scoreMap?.[s.student_username]?.[itemId];
+            const hasExistingScore = rawExistingScore !== null && rawExistingScore !== undefined && rawExistingScore !== '';
+            if (hasExistingScore) {
+                studentTotal += Number(rawExistingScore);
+            } else {
+                hasMissingScore = true;
+            }
+            html += `<td><input type="number" class="grade-input" min="0" max="${maxPoints}" placeholder="None" data-item-id="${itemId}" data-max-points="${maxPoints}" value="${hasExistingScore ? escapeHtml(String(rawExistingScore)) : ''}" oninput="updateStudentTotal(this, false)" onchange="updateStudentTotal(this, true)"></td>`;
         });
-        const letter = toLetter(studentTotal);
+        const letter = hasMissingScore ? '' : toLetter(studentTotal);
         html += `<td><span class="total-grade">${studentTotal}</span></td><td><span class="grade-letter-display ${letter === '--' ? 'empty' : letter}">${letter}</span></td><td><button class="btn-update-grade" onclick="updateSingleStudent('${tr.id}')">Update</button><div class="teacher-inline-message row-action-message" style="display:none;margin-top:6px;"></div></td>`;
         tr.innerHTML = html;
         body.appendChild(tr);
@@ -1201,7 +1233,12 @@ function cancelDeleteHistoryTable(snapshotId) {
 
 function validateGradeInputValue(input, showMessage = false) {
     const maxPoints = Number(input?.dataset?.maxPoints ?? input?.getAttribute('max') ?? 0);
-    let value = Number(input?.value || 0);
+    const rawValue = String(input?.value ?? '').trim();
+    if (rawValue === '') {
+        if (input) input.value = '';
+        return null;
+    }
+    let value = Number(rawValue);
     if (!Number.isFinite(value)) value = 0;
     if (value < 0) value = 0;
     if (maxPoints > 0 && value > maxPoints) {
@@ -1218,9 +1255,9 @@ function validateGradeInputsInRow(row, showMessage = false) {
     if (!row) return true;
     let valid = true;
     row.querySelectorAll('.grade-input').forEach((input) => {
-        const original = Number(input.value || 0);
+        const originalRaw = String(input.value ?? '').trim();
         const corrected = validateGradeInputValue(input, showMessage);
-        if (!Number.isFinite(original) || corrected !== original) {
+        if (originalRaw !== '' && corrected !== null && corrected !== Number(originalRaw)) {
             valid = false;
         }
     });
@@ -1233,13 +1270,21 @@ function updateStudentTotal(input, showValidationMessage = false) {
     validateGradeInputValue(input, showValidationMessage);
     const inputs = row.querySelectorAll('.grade-input');
     let total = 0;
-    inputs.forEach((i) => { total += validateGradeInputValue(i, false); });
+    let hasMissingScore = false;
+    inputs.forEach((i) => {
+        const value = validateGradeInputValue(i, false);
+        if (value === null) {
+            hasMissingScore = true;
+            return;
+        }
+        total += value;
+    });
     row.querySelector('.total-grade').textContent = total;
 
-    const letter = toLetter(total);
+    const letter = hasMissingScore ? '' : toLetter(total);
     const letterEl = row.querySelector('.grade-letter-display');
     letterEl.textContent = letter;
-    letterEl.className = `grade-letter-display ${letter === '--' ? 'empty' : letter}`;
+    letterEl.className = `grade-letter-display ${!letter || letter === '--' ? 'empty' : letter}`;
 }
 
 function toLetter(total) {
@@ -1281,7 +1326,9 @@ async function updateSingleStudent(rowId) {
         const itemId = String(input.dataset.itemId || '');
         if (!itemId) return;
         const value = validateGradeInputValue(input, false);
-        scores[itemId] = value;
+        if (value !== null) {
+            scores[itemId] = value;
+        }
     });
     if (Object.keys(scores).length === 0) {
         showRowActionMessage(row, 'No assessment scores to save.', 'error', true);
@@ -1328,7 +1375,10 @@ async function submitAllGrades() {
         row.querySelectorAll('.grade-input').forEach((input) => {
             const itemId = String(input.dataset.itemId || '');
             if (!itemId) return;
-            scores[itemId] = validateGradeInputValue(input, false);
+            const value = validateGradeInputValue(input, false);
+            if (value !== null) {
+                scores[itemId] = value;
+            }
         });
         payloadRows.push({ student_username: studentUsername, scores });
     }
@@ -1776,46 +1826,49 @@ function buildAssessmentItemRow(item) {
 
 async function onStepOneGradeChange() {
     const grade = document.getElementById('classSelectGrading')?.value || '';
-    const sectionSelect = document.getElementById('sectionSelectGrading');
+    const sectionContainer = document.getElementById('sectionCheckboxesGrading');
     const subjectSelect = document.getElementById('subjectSelectGrading');
     const editor = document.getElementById('assessmentEditorPanel');
     const msg = document.getElementById('assessmentStructureMessage');
     if (msg) msg.style.display = 'none';
     if (editor) editor.style.display = 'none';
-    if (!subjectSelect || !sectionSelect) return;
+    if (!subjectSelect || !sectionContainer) return;
 
     if (!grade) {
-        sectionSelect.innerHTML = '<option value="">-- Choose grade first --</option>';
+        sectionContainer.innerHTML = '<div style="color:#6b7280;">Choose grade first</div>';
         subjectSelect.innerHTML = '<option value="">-- Choose grade first --</option>';
         return;
     }
 
     populateSectionsForStepOne(grade);
-    subjectSelect.innerHTML = '<option value="">-- Choose grade and section first --</option>';
+    subjectSelect.innerHTML = '<option value="">-- Choose grade and section(s) first --</option>';
 }
 
 async function onStepOneSectionChange() {
     const grade = document.getElementById('classSelectGrading')?.value || '';
-    const section = document.getElementById('sectionSelectGrading')?.value || '';
     const subjectSelect = document.getElementById('subjectSelectGrading');
     const editor = document.getElementById('assessmentEditorPanel');
     if (!subjectSelect) return;
     if (editor) editor.style.display = 'none';
 
-    if (!grade || !section) {
-        subjectSelect.innerHTML = '<option value="">-- Choose grade and section first --</option>';
-        return;
-    }
-
-    const selectedClass = classForSelectedGradeAndSection(grade, section);
-    if (!selectedClass?.class_id) {
-        subjectSelect.innerHTML = '<option value="">-- No assigned class for grade/section --</option>';
+    const selectedClasses = getSelectedStepOneClasses();
+    if (!grade || !selectedClasses.length) {
+        subjectSelect.innerHTML = '<option value="">-- Choose grade and section(s) first --</option>';
         return;
     }
 
     try {
-        const data = await apiGet(`${API.classSubjects}?class_id=${selectedClass.class_id}`);
-        const subjects = [...new Set((data.subjects || []).filter(Boolean))];
+        let subjects = null;
+        for (const selectedClass of selectedClasses) {
+            const data = await apiGet(`${API.classSubjects}?class_id=${selectedClass.class_id}`);
+            const currentSubjects = [...new Set((data.subjects || []).filter(Boolean))];
+            if (subjects === null) {
+                subjects = currentSubjects;
+            } else {
+                subjects = subjects.filter((subject) => currentSubjects.includes(subject));
+            }
+        }
+        subjects = Array.isArray(subjects) ? subjects : [];
         subjectSelect.innerHTML = '<option value="">-- Choose subject --</option>';
         subjects.forEach((s) => {
             const opt = document.createElement('option');
@@ -1824,41 +1877,35 @@ async function onStepOneSectionChange() {
             subjectSelect.appendChild(opt);
         });
         if (!subjects.length) {
-            subjectSelect.innerHTML = '<option value="">-- No subject assigned for this class --</option>';
+            subjectSelect.innerHTML = '<option value="">-- No common subject for selected sections --</option>';
         }
     } catch (_) {
-        subjectSelect.innerHTML = '<option value="">-- No subject assigned for this class --</option>';
+        subjectSelect.innerHTML = '<option value="">-- No subject assigned for selected sections --</option>';
     }
 }
 
 async function onStepOneSubjectChange() {
     const grade = document.getElementById('classSelectGrading')?.value || '';
-    const section = document.getElementById('sectionSelectGrading')?.value || '';
     const subject = document.getElementById('subjectSelectGrading')?.value || '';
+    const term = document.getElementById('structureTermSelect')?.value || 'Term1';
     const editor = document.getElementById('assessmentEditorPanel');
     const container = document.getElementById('assessmentItemsContainer');
     const msg = document.getElementById('assessmentStructureMessage');
     if (msg) msg.style.display = 'none';
     if (!editor || !container) return;
 
-    if (!grade || !section || !subject) {
-        editor.style.display = 'none';
-        return;
-    }
-
-    const selectedClass = classForSelectedGradeAndSection(grade, section);
-    if (!selectedClass?.class_id) {
-        showAssessmentStructureMessage('Class not found for selected grade/section.', 'error');
+    const selectedClasses = getSelectedStepOneClasses();
+    if (!grade || !selectedClasses.length || !subject) {
         editor.style.display = 'none';
         return;
     }
 
     container.innerHTML = '';
     try {
-        const data = await apiGet(`${API.getAssessmentStructure}?class_id=${selectedClass.class_id}&subject=${encodeURIComponent(subject)}&term=Term1`);
+        const data = await apiGet(`${API.getAssessmentStructure}?class_id=${selectedClasses[0].class_id}&subject=${encodeURIComponent(subject)}&term=${encodeURIComponent(term)}`);
         if (data.exists && Array.isArray(data.items) && data.items.length) {
             data.items.forEach((item) => container.appendChild(buildAssessmentItemRow({ name: item.name, points: item.max_points })));
-            showAssessmentStructureMessage('Loaded existing structure from database. You can update and save.', 'info');
+            showAssessmentStructureMessage(`Loaded existing structure from one selected section for ${term}. Saving will apply it to all selected sections.`, 'info');
         } else {
             container.appendChild(buildAssessmentItemRow({ name: '', points: '' }));
         }

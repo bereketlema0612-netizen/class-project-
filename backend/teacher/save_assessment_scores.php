@@ -123,6 +123,7 @@ try {
         }
 
         $total = 0.0;
+        $enteredCount = 0;
         foreach ($scores as $itemIdRaw => $scoreRaw) {
             $itemId = (int)$itemIdRaw;
             if (!isset($itemMax[$itemId])) {
@@ -133,34 +134,54 @@ try {
                 throw new Exception('Invalid score for student ' . $studentUsername . ', item ' . $itemId);
             }
             $total += $score;
+            $enteredCount++;
         }
 
-        $scale = resolveGradeScale($conn, $total);
         $normalizedScores = normalizeScoresForStorage($scores, $itemMax);
         $scoresJson = json_encode($normalizedScores);
         if ($scoresJson === false) {
             throw new Exception('Failed to serialize scores for student ' . $studentUsername);
         }
 
-        $upsertCompactScore->bind_param("iissdsis", $structureId, $classId, $studentUsername, $scoresJson, $total, $scale['grade'], $scale['id'], $teacherUsername);
+        $isComplete = count($normalizedScores) === count($itemMax);
+        $scale = $isComplete ? resolveGradeScale($conn, $total) : ['id' => null, 'grade' => ''];
+        $gradingScaleId = $scale['id'];
+        $letterGrade = (string)$scale['grade'];
+
+        $upsertCompactScore->bind_param("iissdsis", $structureId, $classId, $studentUsername, $scoresJson, $total, $letterGrade, $gradingScaleId, $teacherUsername);
         if (!$upsertCompactScore->execute()) {
             throw new Exception($upsertCompactScore->error);
         }
 
-        $upsertFinalGradeStmt->bind_param(
-            "siisidssi",
-            $studentUsername,
-            $classId,
-            $subjectId,
-            $term,
-            $academicYearId,
-            $total,
-            $scale['grade'],
-            $teacherUsername,
-            $structureId
-        );
-        if (!$upsertFinalGradeStmt->execute()) {
-            throw new Exception($upsertFinalGradeStmt->error);
+        if ($isComplete) {
+            $upsertFinalGradeStmt->bind_param(
+                "siisidssi",
+                $studentUsername,
+                $classId,
+                $subjectId,
+                $term,
+                $academicYearId,
+                $total,
+                $letterGrade,
+                $teacherUsername,
+                $structureId
+            );
+            if (!$upsertFinalGradeStmt->execute()) {
+                throw new Exception($upsertFinalGradeStmt->error);
+            }
+        } else {
+            $deleteFinalGradeStmt = $conn->prepare("
+                DELETE FROM final_grades
+                WHERE student_username = ?
+                  AND class_id = ?
+                  AND subject_id = ?
+                  AND term = ?
+                  AND academic_year_id = ?
+            ");
+            $deleteFinalGradeStmt->bind_param("siisi", $studentUsername, $classId, $subjectId, $term, $academicYearId);
+            if (!$deleteFinalGradeStmt->execute()) {
+                throw new Exception($deleteFinalGradeStmt->error);
+            }
         }
         $savedStudents++;
     }

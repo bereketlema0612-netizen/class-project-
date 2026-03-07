@@ -286,7 +286,12 @@
                     <div class="card">
                         <h3 class="section-title">Submit Your Work</h3>
                         <p class="section-subtitle">Upload and submit your completed assignments</p>
-                        <div id="submissionFormContainer" class="submission-container">
+                        <div style="margin-bottom: 12px;">
+                            <button type="button" id="toggleSubmissionFormBtn" class="btn btn-secondary" onclick="toggleSubmissionForm()">
+                                <i class="fas fa-upload"></i> Load Submission Form
+                            </button>
+                        </div>
+                        <div id="submissionFormContainer" class="submission-container" style="display:none;">
                             <div class="submission-form-card">
                                 <div class="form-group">
                                     <label for="assessmentSelect">Select Assignment:</label>

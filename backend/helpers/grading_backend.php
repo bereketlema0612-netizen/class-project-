@@ -170,6 +170,8 @@ function ensureAssessmentTables(mysqli $conn): void {
             WHERE (a.grade_level IS NULL OR a.grade_level = '')
         ");
     }
+
+    dropIndexIfExists($conn, 'assessment_structures', 'uk_structure_v2');
 }
 
 function tableColumnExists(mysqli $conn, string $table, string $column): bool {
@@ -197,6 +199,34 @@ function ensureColumnExists(mysqli $conn, string $table, string $column, string 
     $sql = "ALTER TABLE `$table` ADD COLUMN `$column` $definition";
     if (!$conn->query($sql)) {
         throw new Exception("Failed to add column $table.$column: " . $conn->error);
+    }
+}
+
+function tableIndexExists(mysqli $conn, string $table, string $indexName): bool {
+    $stmt = $conn->prepare("
+        SELECT 1
+        FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+          AND index_name = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        throw new Exception('Failed to prepare index-exists query: ' . $conn->error);
+    }
+    $stmt->bind_param("ss", $table, $indexName);
+    $stmt->execute();
+    return $stmt->get_result()->num_rows > 0;
+}
+
+function dropIndexIfExists(mysqli $conn, string $table, string $indexName): void {
+    if (!tableIndexExists($conn, $table, $indexName)) {
+        return;
+    }
+
+    $sql = "ALTER TABLE `$table` DROP INDEX `$indexName`";
+    if (!$conn->query($sql)) {
+        throw new Exception("Failed to drop index $table.$indexName: " . $conn->error);
     }
 }
 

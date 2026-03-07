@@ -453,11 +453,15 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Send To *</label>
-                                    <select class="form-control" name="sendTo" required>
+                                    <select class="form-control" name="sendTo" id="directorSendTo" required>
                                         <option value="">-- Select --</option>
                                         <option value="all">All (Students & Teachers)</option>
                                         <option value="students">Students Only</option>
                                         <option value="teachers">Teachers Only</option>
+                                        <option value="admins">Registration Admins Only</option>
+                                        <option value="individual_student">Individual Student</option>
+                                        <option value="individual_teacher">Individual Teacher</option>
+                                        <option value="individual_admin">Individual Registration Admin</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -467,6 +471,28 @@
                                         <option value="high">High</option>
                                         <option value="urgent">Urgent</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full" id="directorRecipientGroup" style="display:none;">
+                                    <label>Choose Recipient *</label>
+                                    <input type="text" class="form-control" id="directorRecipientSearch" placeholder="Search recipient by name or username" list="directorRecipientOptions" autocomplete="off">
+                                    <datalist id="directorRecipientOptions"></datalist>
+                                    <input type="hidden" name="targetUsername" id="directorRecipientSelect">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label>Attachment</label>
+                                    <input type="file" id="directorAnnouncementFile" name="attachment" style="display:none;" onchange="onDirectorAnnouncementFileSelected(event)">
+                                    <div class="form-actions" style="margin-top:0;">
+                                        <button type="button" class="btn btn-secondary" onclick="openDirectorAnnouncementFilePicker()">
+                                            <i class="fas fa-folder-open"></i> Choose File
+                                        </button>
+                                        <span id="directorAnnouncementFileName" style="font-size:13px;color:#64748b;">No file selected</span>
+                                    </div>
                                 </div>
                             </div>
 

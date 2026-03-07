@@ -908,6 +908,10 @@ body {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
+    .assignments-download-container {
+        grid-template-columns: 1fr;
+    }
+
     .sidebar {
         position: fixed;
         left: 0;
@@ -986,19 +990,20 @@ body {
 
 /* ASSESSMENTS - DOWNLOAD & SUBMISSION SECTIONS */
 .assignments-download-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+    align-items: start;
 }
 
 .download-card {
-    padding: 20px;
+    padding: 14px 16px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: var(--bg-secondary);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     transition: all 0.3s ease;
 }
 
@@ -1009,31 +1014,32 @@ body {
 
 .download-header {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     align-items: flex-start;
 }
 
 .download-header i {
-    font-size: 32px;
+    font-size: 24px;
     color: var(--primary-color);
-    margin-top: 5px;
+    margin-top: 2px;
 }
 
 .download-header h4 {
     margin: 0;
     font-size: 16px;
     color: var(--text-primary);
+    line-height: 1.3;
 }
 
 .download-header .teacher {
-    margin: 5px 0 0 0;
-    font-size: 12px;
+    margin: 3px 0 0 0;
+    font-size: 13px;
     color: var(--text-secondary);
 }
 
 .subject-tag {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 3px 8px;
     background-color: var(--primary-light);
     color: white;
     border-radius: 4px;
@@ -1044,9 +1050,16 @@ body {
 }
 
 .due-date {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-secondary);
     margin: 0;
+    line-height: 1.4;
+}
+
+.download-card .btn {
+    align-self: flex-start;
+    padding: 8px 12px;
+    font-size: 12px;
 }
 
 /* SUBMISSION FORM SECTION */
@@ -1252,4 +1265,3 @@ textarea.form-control {
     font-size: 13px;
     color: var(--text-secondary);
 }
-

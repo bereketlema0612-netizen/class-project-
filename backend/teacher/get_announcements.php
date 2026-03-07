@@ -21,6 +21,12 @@ if ($colRes && $colRes->num_rows > 0) {
     $hasContent = true;
 }
 $contentExpr = $hasContent ? 'COALESCE(a.content, a.message)' : 'a.message';
+$hasTargetUsers = false;
+$colRes = $conn->query("SHOW COLUMNS FROM announcements LIKE 'target_usernames'");
+if ($colRes && $colRes->num_rows > 0) {
+    $hasTargetUsers = true;
+}
+$targetUsersExpr = $hasTargetUsers ? "COALESCE(a.target_usernames, '')" : "''";
 $hasAttachmentPath = false;
 $hasAttachmentName = false;
 $hasAttachmentMime = false;
@@ -46,11 +52,11 @@ $attachmentNameExpr = $hasAttachmentName ? 'a.attachment_name' : 'NULL';
 $attachmentMimeExpr = $hasAttachmentMime ? 'a.attachment_mime' : 'NULL';
 $attachmentSizeExpr = $hasAttachmentSize ? 'a.attachment_size' : 'NULL';
 
-$stmt = $conn->prepare("SELECT a.id, a.title, a.message, {$contentExpr} as content, a.priority, a.audience, a.created_at, {$attachmentPathExpr} AS attachment_path, {$attachmentNameExpr} AS attachment_name, {$attachmentMimeExpr} AS attachment_mime, {$attachmentSizeExpr} AS attachment_size FROM announcements a WHERE (a.audience = 'teachers' OR a.audience = 'all' OR a.created_by_username = ?) ORDER BY a.created_at DESC LIMIT ? OFFSET ?");
+$stmt = $conn->prepare("SELECT a.id, a.title, a.message, {$contentExpr} as content, a.priority, a.audience, {$targetUsersExpr} AS target_usernames, a.created_at, {$attachmentPathExpr} AS attachment_path, {$attachmentNameExpr} AS attachment_name, {$attachmentMimeExpr} AS attachment_mime, {$attachmentSizeExpr} AS attachment_size FROM announcements a WHERE (a.audience = 'teachers' OR a.audience = 'all' OR (a.audience = 'individual' AND FIND_IN_SET(?, COALESCE(a.target_usernames, ''))) OR a.created_by_username = ?) ORDER BY a.created_at DESC LIMIT ? OFFSET ?");
 if (!$stmt) {
     sendResponse(false, 'Failed to prepare announcements query: ' . $conn->error, null, 500);
 }
-$stmt->bind_param("sii", $_SESSION['username'], $limit, $offset);
+$stmt->bind_param("ssii", $_SESSION['username'], $_SESSION['username'], $limit, $offset);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -59,8 +65,8 @@ while ($row = $result->fetch_assoc()) {
     $announcements[] = $row;
 }
 
-$countStmt = $conn->prepare("SELECT COUNT(*) as total FROM announcements WHERE audience = 'teachers' OR audience = 'all' OR created_by_username = ?");
-$countStmt->bind_param("s", $_SESSION['username']);
+$countStmt = $conn->prepare("SELECT COUNT(*) as total FROM announcements WHERE audience = 'teachers' OR audience = 'all' OR (audience = 'individual' AND FIND_IN_SET(?, COALESCE(target_usernames, ''))) OR created_by_username = ?");
+$countStmt->bind_param("ss", $_SESSION['username'], $_SESSION['username']);
 $countStmt->execute();
 $countResult = $countStmt->get_result();
 $countRow = $countResult->fetch_assoc();

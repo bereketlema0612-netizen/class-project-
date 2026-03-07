@@ -759,11 +759,47 @@ body {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
+    gap: 12px;
 }
 
 .announcement-title {
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.announcement-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.announcement-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+
+.announcement-delete {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #b91c1c;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.announcement-delete:hover {
+    background: #fecaca;
 }
 
 .announcement-time {

@@ -89,6 +89,22 @@ if ($subjectRow) {
 
 $conn->begin_transaction();
 try {
+    $duplicateStmt = $conn->prepare("
+        SELECT teacher_username
+        FROM assignments
+        WHERE class_id = ? AND subject_id = ? AND assignment_type = 'teacher' AND is_blocked = 0
+        LIMIT 1
+    ");
+    if (!$duplicateStmt) {
+        throw new Exception('Failed to prepare duplicate assignment check: ' . $conn->error);
+    }
+    $duplicateStmt->bind_param("ii", $classId, $subjectId);
+    $duplicateStmt->execute();
+    $duplicateRow = $duplicateStmt->get_result()->fetch_assoc();
+    if ($duplicateRow && strcasecmp((string)$duplicateRow['teacher_username'], $teacherUsername) !== 0) {
+        sendResponse(false, 'Another teacher is already assigned to this grade, section, and subject', null, 409);
+    }
+
     $existingStmt = $conn->prepare("
         SELECT id
         FROM assignments

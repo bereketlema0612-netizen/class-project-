@@ -32,6 +32,12 @@ if ($colRes && $colRes->num_rows > 0) {
     $hasTargetClassIds = true;
 }
 $targetClassExpr = $hasTargetClassIds ? "COALESCE(a.target_class_ids, '')" : "''";
+$hasTargetUsers = false;
+$colRes = $conn->query("SHOW COLUMNS FROM announcements LIKE 'target_usernames'");
+if ($colRes && $colRes->num_rows > 0) {
+    $hasTargetUsers = true;
+}
+$targetUsersExpr = $hasTargetUsers ? "COALESCE(a.target_usernames, '')" : "''";
 $hasAttachmentPath = false;
 $hasAttachmentName = false;
 $hasAttachmentMime = false;
@@ -74,10 +80,10 @@ if ($classStmt) {
 
 $stmt = $conn->prepare("
     SELECT 
-        a.id, a.title, a.message, {$contentExpr} as content, a.audience, a.priority, a.created_at, {$targetClassExpr} as target_class_ids,
+        a.id, a.title, a.message, {$contentExpr} as content, a.audience, a.priority, a.created_at, {$targetClassExpr} as target_class_ids, {$targetUsersExpr} as target_usernames,
         {$attachmentPathExpr} AS attachment_path, {$attachmentNameExpr} AS attachment_name, {$attachmentMimeExpr} AS attachment_mime, {$attachmentSizeExpr} AS attachment_size
     FROM announcements a
-    WHERE a.audience IN ('students', 'all')
+    WHERE a.audience IN ('students', 'all', 'individual')
     ORDER BY a.created_at DESC
     LIMIT ? OFFSET ?
 ");
@@ -89,6 +95,13 @@ $stmt->execute();
 $rawAnnouncements = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $announcements = [];
 foreach ($rawAnnouncements as $row) {
+    $targetUsers = trim((string)($row['target_usernames'] ?? ''));
+    if (strtolower((string)($row['audience'] ?? '')) === 'individual') {
+        $userTargets = array_filter(array_map('trim', explode(',', $targetUsers)), static fn($v) => $v !== '');
+        if (!in_array($studentUsername, $userTargets, true)) {
+            continue;
+        }
+    }
     $targetCsv = trim((string)($row['target_class_ids'] ?? ''));
     if ($targetCsv === '') {
         $announcements[] = $row;
