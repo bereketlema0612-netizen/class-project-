@@ -454,31 +454,6 @@ input.filter-select {
     overflow-x: auto;
 }
 
-.records-switch {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.records-switch-btn {
-    border: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.records-switch-btn.active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-}
-
 .records-panel {
     display: none;
 }
