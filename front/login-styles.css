@@ -89,6 +89,20 @@ body {
     border-radius: 12px;
 }
 
+.login-message {
+    margin-bottom: 18px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.login-message.error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
 .toggle-btn {
     flex: 1;
     padding: 12px 16px;

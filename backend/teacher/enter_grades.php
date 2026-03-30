@@ -38,9 +38,39 @@ $term = trim((string)($data['term'] ?? 'Term1'));
 $subject = trim((string)($data['subject'] ?? 'General'));
 $marks = (float)($data['marks'] ?? 0);
 
+$hasBreakdown =
+    array_key_exists('assignment_marks', $data) ||
+    array_key_exists('mid_marks', $data) ||
+    array_key_exists('final_marks', $data);
+
+$assignmentMarks = 0.0;
+$midMarks = 0.0;
+$finalMarks = 0.0;
+
 if ($studentInput === '' || $classId <= 0 || $subject === '') {
     echo json_encode(['success' => false, 'message' => 'student, class_id, subject required', 'data' => null]);
     exit;
+}
+
+if ($hasBreakdown) {
+    $assignmentMarks = (float)($data['assignment_marks'] ?? 0);
+    $midMarks = (float)($data['mid_marks'] ?? 0);
+    $finalMarks = (float)($data['final_marks'] ?? 0);
+
+    if ($assignmentMarks < 0 || $assignmentMarks > 10) {
+        echo json_encode(['success' => false, 'message' => 'Assignment mark must be between 0 and 10', 'data' => null]);
+        exit;
+    }
+    if ($midMarks < 0 || $midMarks > 30) {
+        echo json_encode(['success' => false, 'message' => 'Mid exam mark must be between 0 and 30', 'data' => null]);
+        exit;
+    }
+    if ($finalMarks < 0 || $finalMarks > 60) {
+        echo json_encode(['success' => false, 'message' => 'Final exam mark must be between 0 and 60', 'data' => null]);
+        exit;
+    }
+
+    $marks = $assignmentMarks + $midMarks + $finalMarks;
 }
 
 $studentUsername = $studentInput;
@@ -83,6 +113,9 @@ echo json_encode([
         'class_id' => $classId,
         'subject' => $subject,
         'term' => $term,
+        'assignment_marks' => $assignmentMarks,
+        'mid_marks' => $midMarks,
+        'final_marks' => $finalMarks,
         'marks' => $marks,
         'letter_grade' => $letter
     ]

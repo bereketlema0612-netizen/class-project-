@@ -30,23 +30,10 @@
                     <i class="fas fa-chart-bar"></i>
                     <span>Grades</span>
                 </a>
-                <a href="#schedule" class="nav-item" data-page="schedule">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Schedule</span>
-                </a>
                 <a href="#announcements" class="nav-item" data-page="announcements">
                     <i class="fas fa-bullhorn"></i>
                     <span>Announcements</span>
                     <span class="badge" id="announcementBadge">0</span>
-                </a>
-                <a href="#assessments" class="nav-item" data-page="assessments">
-                    <i class="fas fa-tasks"></i>
-                    <span>Assessments</span>
-                    <span class="badge" id="assessmentBadge">0</span>
-                </a>
-                <a href="#resources" class="nav-item" data-page="resources">
-                    <i class="fas fa-file-download"></i>
-                    <span>Resources</span>
                 </a>
                 <a href="#profile" class="nav-item" data-page="profile">
                     <i class="fas fa-user"></i>
@@ -166,51 +153,20 @@
                         <p class="student-name-display">Student: <strong id="gradeStudentName">John Doe</strong></p>
                     </div>
 
-                    <div class="filter-section">
-                        <div class="filter-group">
-                            <label>Select Semester:</label>
-                            <select id="semesterFilter">
-                                <option value="">-- Select Semester --</option>
-                                <option value="first">First Semester</option>
-                                <option value="second">Second Semester</option>
-                            </select>
-                        </div>
-                        <button id="viewGradesBtn" class="btn btn-primary">View Grades</button>
-                    </div>
-
-                    <div id="subjectsContainer" class="subjects-container">
-                        <!-- Subject sections will be generated here by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- SCHEDULE PAGE -->
-                <div id="schedule" class="page">
-                    <div class="page-header">
-                        <h2>Class Schedule</h2>
-                        <p class="subtitle">Weekly timetable</p>
-                    </div>
-
-                    <div class="card">
-                        <div class="schedule-table">
-                            <table class="timetable">
+                    <div class="card grades-table-card">
+                        <div class="table-container">
+                            <table class="data-table" id="gradesTable">
                                 <thead>
                                     <tr>
-                                        <th>Time</th>
-                                        <th>Monday</th>
-                                        <th>Tuesday</th>
-                                        <th>Wednesday</th>
-                                        <th>Thursday</th>
-                                        <th>Friday</th>
+                                        <th>Subject</th>
+                                        <th>Term</th>
+                                        <th>Marks</th>
+                                        <th>Grade</th>
                                     </tr>
                                 </thead>
-                                <tbody id="scheduleTableBody">
+                                <tbody id="gradesTableBody">
                                     <tr>
-                                        <td class="time">9:00 - 9:45</td>
-                                        <td class="class-cell">Mathematics<br><small>Room 201</small></td>
-                                        <td class="class-cell">English<br><small>Room 202</small></td>
-                                        <td class="class-cell">Science<br><small>Lab 1</small></td>
-                                        <td class="class-cell">History<br><small>Room 204</small></td>
-                                        <td class="class-cell">Geography<br><small>Room 205</small></td>
+                                        <td colspan="4">Loading grades...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -245,156 +201,6 @@
                     </div>
                 </div>
 
-                <!-- ASSESSMENTS PAGE -->
-                <div id="assessments" class="page">
-                    <div class="page-header">
-                        <h2>Assessments</h2>
-                        <p class="subtitle">Download assignments, view teacher assessments, and submit your work</p>
-                    </div>
-
-                    <!-- DOWNLOAD ASSIGNMENTS SECTION -->
-                    <div class="card">
-                        <h3 class="section-title">Download Assignments</h3>
-                        <p class="section-subtitle">Get assignment materials from your teachers</p>
-                        <div id="downloadAssignmentsContainer" class="assignments-download-container">
-                            <div class="download-card">
-                                <div class="download-header">
-                                    <i class="fas fa-file-pdf"></i>
-                                    <div>
-                                        <h4>Math Homework</h4>
-                                        <p class="teacher">Teacher: Mr. Smith</p>
-                                    </div>
-                                </div>
-                                <p class="subject-tag">Mathematics</p>
-                                <p class="due-date">Due: Feb 25, 2025</p>
-                                <button class="btn btn-secondary" onclick="downloadFile('assignment-1.pdf')">
-                                    <i class="fas fa-download"></i> Download Assignment
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SUBMIT YOUR WORK SECTION -->
-                    <div class="card">
-                        <h3 class="section-title">Submit Your Work</h3>
-                        <p class="section-subtitle">Upload and submit your completed assignments</p>
-                        <div style="margin-bottom: 12px;">
-                            <button type="button" id="toggleSubmissionFormBtn" class="btn btn-secondary" onclick="toggleSubmissionForm()">
-                                <i class="fas fa-upload"></i> Load Submission Form
-                            </button>
-                        </div>
-                        <div id="submissionFormContainer" class="submission-container" style="display:none;">
-                            <div class="submission-form-card">
-                                <div class="form-group">
-                                    <label for="assessmentSelect">Select Assignment:</label>
-                                    <select id="assessmentSelect" class="form-control" onchange="updateTeacherDropdown()">
-                                        <option value="">-- Choose an assignment --</option>
-                                        <option value="1">Math Homework (Due: Feb 25)</option>
-                                        <option value="2">English Essay (Due: Feb 28)</option>
-                                        <option value="3">Science Lab Report (Due: Feb 22)</option>
-                                        <option value="4">History Research (Due: Mar 05)</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="teacherSelect">Submit to Teacher:</label>
-                                    <select id="teacherSelect" class="form-control">
-                                        <option value="">-- Select a teacher --</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="submissionFile">Upload Your Work:</label>
-                                    <div class="file-upload-area" id="fileUploadArea">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                        <p>Drag and drop your file here or click to browse</p>
-                                        <p class="file-info">Supported: PDF, DOC, DOCX, ZIP (Max 10MB)</p>
-                                        <input type="file" id="submissionFile" class="file-input" />
-                                    </div>
-                                    <div style="margin-top: 8px;">
-                                        <button type="button" class="btn btn-secondary" onclick="openSubmissionFilePicker()">
-                                            <i class="fas fa-folder-open"></i> Browse File
-                                        </button>
-                                    </div>
-                                    <div id="filePreview" class="file-preview" style="display: none;">
-                                        <i class="fas fa-file"></i>
-                                        <p id="selectedFileName">file-name.pdf</p>
-                                        <button type="button" class="btn-remove-file" onclick="removeSelectedFile()">Remove</button>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="submissionNotes">Notes (Optional):</label>
-                                    <textarea id="submissionNotes" class="form-control" rows="3" placeholder="Add any notes or comments about your submission..."></textarea>
-                                </div>
-
-                                <div class="submission-actions">
-                                    <button class="btn btn-primary" onclick="submitAssignment()">
-                                        <i class="fas fa-paper-plane"></i> Submit Assignment
-                                    </button>
-                                    <button class="btn btn-secondary" onclick="clearSubmissionForm()">Clear</button>
-                                </div>
-                                <div id="submissionInlineMessage" class="teacher-inline-message" style="display:none; margin-top:8px;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SUBMISSION HISTORY SECTION -->
-                    <div class="card">
-                        <h3 class="section-title">Submission History</h3>
-                        <p class="section-subtitle">Your recent submissions and grades</p>
-                        <div id="submissionHistoryContainer" class="submission-history-container">
-                            <div class="history-item submitted">
-                                <div class="history-header">
-                                    <div>
-                                        <h4>Science Lab Report</h4>
-                                        <p class="history-date">Submitted: Feb 22, 2025 at 2:30 PM</p>
-                                    </div>
-                                    <span class="status-badge submitted">Submitted</span>
-                                </div>
-                                <p class="history-feedback">Teacher feedback: Excellent work! Well-structured report.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RESOURCES PAGE -->
-                <div id="resources" class="page">
-                    <div class="page-header">
-                        <h2>Resources</h2>
-                        <div class="filter-group">
-                            <label>Filter by Subject:</label>
-                            <select id="resourceSubjectFilter">
-                                <option value="">All Resources</option>
-                                <option value="mathematics">Mathematics</option>
-                                <option value="english">English Language</option>
-                                <option value="science">Science</option>
-                                <option value="history">History</option>
-                                <option value="geography">Geography</option>
-                                <option value="civics">Civics</option>
-                                <option value="it">IT</option>
-                                <option value="pe">Physical Education</option>
-                                <option value="art">Art</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="resourcesContainer" class="resources-container">
-                        <div class="card resource-card">
-                            <div class="resource-header">
-                                <i class="fas fa-file-pdf"></i>
-                                <div>
-                                    <h3>Chapter 1 Notes</h3>
-                                    <p class="resource-subject">Mathematics</p>
-                                </div>
-                            </div>
-                            <p class="resource-teacher">Uploaded by: Mr. Smith</p>
-                            <p class="resource-date">Feb 15, 2025</p>
-                            <button class="btn btn-secondary" onclick="downloadFile('notes.pdf')">Download</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- PROFILE PAGE -->
                 <div id="profile" class="page">
                     <div class="page-header">
@@ -403,7 +209,9 @@
 
                     <div class="card profile-card">
                         <div class="profile-header">
-                            <img id="profileAvatar" src="https://via.placeholder.com/120" alt="Profile" class="profile-avatar">
+                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
                             <div class="profile-info">
                                 <h3 id="profileName">John Doe</h3>
                                 <p id="profileGrade">Grade 9</p>
@@ -440,6 +248,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=20260306-12"></script>
+    <script src="script.js?v=20260330-15"></script>
 </body>
 </html>

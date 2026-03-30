@@ -38,6 +38,10 @@
                     <i class="fas fa-cog"></i>
                     <span>School Settings</span>
                 </a>
+                <a href="#profile" class="nav-item" data-page="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -369,6 +373,7 @@
                                     <i class="fas fa-paper-plane"></i> Send Announcement
                                 </button>
                             </div>
+                            <div id="directorAnnouncementMessage" class="form-inline-message" role="status" aria-live="polite"></div>
                         </form>
                     </div>
 
@@ -494,6 +499,45 @@
                     </div>
                 </div>
 
+                <!-- PROFILE PAGE -->
+                <div id="profile" class="page">
+                    <div class="page-header">
+                        <h2>Director Profile</h2>
+                        <p class="subtitle">Your account information</p>
+                    </div>
+
+                    <div class="card profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar profile-avatar-icon" aria-label="Profile">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h3 id="directorProfileName">Director</h3>
+                                <p id="directorProfileRole">DIRECTOR</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-details">
+                            <div class="detail-row">
+                                <label>Username:</label>
+                                <p id="directorProfileUsername">-</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Email:</label>
+                                <p id="directorProfileEmail">-</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Role:</label>
+                                <p id="directorProfileRoleText">DIRECTOR</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Session:</label>
+                                <p id="directorProfileSession">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -530,25 +574,6 @@
         </div>
     </div>
 
-    <div id="myProfileModal" class="modal" onclick="if(event.target.id==='myProfileModal') closeMyProfileModal()">
-        <div class="modal-content" style="max-width:520px;">
-            <div class="modal-header">
-                <h3>My Profile</h3>
-                <button class="close-modal" onclick="closeMyProfileModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Full Name:</strong> <span id="myProfileName">-</span></p>
-                <p><strong>Username:</strong> <span id="myProfileUsername">-</span></p>
-                <p><strong>Role:</strong> <span id="myProfileRole">-</span></p>
-                <p><strong>Email:</strong> <span id="myProfileEmail">-</span></p>
-                <p><strong>Session:</strong> <span id="myProfileSession">-</span></p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeMyProfileModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="director-script.js?v=20260330-1"></script>
+    <script src="director-script.js?v=20260330-4"></script>
 </body>
 </html>

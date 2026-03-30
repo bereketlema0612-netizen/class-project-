@@ -23,7 +23,16 @@ CREATE TABLE students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     fname VARCHAR(50) NOT NULL,
+    mname VARCHAR(50) NULL,
     lname VARCHAR(50) NOT NULL,
+    date_of_birth DATE NULL,
+    age INT NULL,
+    sex VARCHAR(20) NULL,
+    grade_level VARCHAR(20) NULL,
+    stream VARCHAR(20) NULL,
+    address TEXT NULL,
+    parent_name VARCHAR(120) NULL,
+    parent_phone VARCHAR(50) NULL,
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -31,7 +40,10 @@ CREATE TABLE teachers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     fname VARCHAR(50) NOT NULL,
+    mname VARCHAR(50) NULL,
     lname VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NULL,
+    subject VARCHAR(100) NULL,
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -40,6 +52,8 @@ CREATE TABLE admins (
     username VARCHAR(50) NOT NULL UNIQUE,
     fname VARCHAR(50) NOT NULL,
     lname VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NULL,
+    phone VARCHAR(50) NULL,
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -64,6 +78,18 @@ INSERT INTO students (username, fname, lname) VALUES ('std001', 'Student', 'One'
 INSERT INTO teachers (username, fname, lname) VALUES ('tch001', 'Teacher', 'One');
 INSERT INTO admins (username, fname, lname) VALUES ('adm001', 'Admin', 'One');
 INSERT INTO directors (username, fname, lname) VALUES ('dir001', 'Director', 'One');
+
+UPDATE students
+SET grade_level = '9', stream = 'A'
+WHERE username = 'std001';
+
+UPDATE teachers
+SET department = 'Academics', subject = 'Mathematics'
+WHERE username = 'tch001';
+
+UPDATE admins
+SET department = 'Registration', phone = ''
+WHERE username = 'adm001';
 
 -- =====================================================
 -- MINIMAL TEACHER MODULE TABLES (CLASS PROJECT)
@@ -131,6 +157,31 @@ CREATE TABLE announcements (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE director_announcements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    director_username VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    send_to VARCHAR(40) NOT NULL DEFAULT 'all',
+    target_username VARCHAR(50) NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'normal',
+    attachment_name VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE school_settings (
+    id INT PRIMARY KEY,
+    school_name VARCHAR(255) NOT NULL,
+    school_email VARCHAR(255) NULL,
+    school_phone VARCHAR(50) NULL,
+    school_address TEXT NULL,
+    academic_year VARCHAR(30) NULL,
+    opening_date DATE NULL,
+    term1_end DATE NULL,
+    closing_date DATE NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- sample class + assignment
 INSERT INTO classes (name, grade_level, section) VALUES ('Grade 9 - A', '9', 'A');
 INSERT INTO assignments (class_id, teacher_username, subject_name, assignment_type) VALUES
@@ -138,6 +189,8 @@ INSERT INTO assignments (class_id, teacher_username, subject_name, assignment_ty
 (1, 'tch001', 'English', 'teacher');
 INSERT INTO class_enrollments (student_username, class_id, enrollment_date) VALUES ('std001', 1, CURDATE());
 INSERT INTO subjects (subject_name) VALUES ('Mathematics'), ('English'), ('Biology');
+INSERT INTO school_settings (id, school_name, school_email, school_phone, school_address, academic_year)
+VALUES (1, 'BENSE SECONDARY HIGH SCHOOL', '', '', '', '');
 
 -- Optional: quick check query
 -- SELECT id, username, role, status FROM users;

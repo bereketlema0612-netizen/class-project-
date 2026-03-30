@@ -18,6 +18,15 @@ $total = 0;
 
 $tbl = $conn->query("SHOW TABLES LIKE 'announcements'");
 if ($tbl && $tbl->num_rows > 0) {
+    $colName = $conn->query("SHOW COLUMNS FROM announcements LIKE 'attachment_name'");
+    if ($colName && $colName->num_rows === 0) {
+        $conn->query("ALTER TABLE announcements ADD COLUMN attachment_name VARCHAR(255) NULL AFTER class_id");
+    }
+    $colUrl = $conn->query("SHOW COLUMNS FROM announcements LIKE 'attachment_url'");
+    if ($colUrl && $colUrl->num_rows === 0) {
+        $conn->query("ALTER TABLE announcements ADD COLUMN attachment_url VARCHAR(255) NULL AFTER attachment_name");
+    }
+
     $cnt = $conn->prepare("SELECT COUNT(*) AS c FROM announcements WHERE teacher_username = ?");
     if ($cnt) {
         $cnt->bind_param('s', $teacher);
@@ -27,7 +36,7 @@ if ($tbl && $tbl->num_rows > 0) {
         $cnt->close();
     }
 
-    $sql = "SELECT id, title, message, class_id, created_at
+    $sql = "SELECT id, title, message, class_id, attachment_name, attachment_url, created_at
             FROM announcements
             WHERE teacher_username = ?
             ORDER BY id DESC

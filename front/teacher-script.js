@@ -13,6 +13,12 @@ const API = {
     logout: APP_BASE + '/backend/auth/logout.php'
 };
 
+const ASSESSMENT_LIMITS = {
+    assignment: 10,
+    mid: 30,
+    final: 60
+};
+
 const state = {
     user: null,
     dashboard: null,
@@ -36,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             switchPage(item.getAttribute('data-page'));
         });
     });
+    document.getElementById('announcementFile')?.addEventListener('change', updateAnnouncementFilePreview);
+    document.getElementById('announcementFileUploadArea')?.addEventListener('click', openAnnouncementFilePicker);
 
     await initializeTeacherPage();
 });
@@ -82,6 +90,25 @@ async function apiPost(url, payload) {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch (_) { throw new Error('Server returned invalid JSON: ' + text.slice(0, 120)); }
+    if (!body || !body.success) {
+        if (String(body?.message || '').toLowerCase() === 'unauthorized') {
+            handleUnauthorized();
+            throw new Error('Session expired. Please login again.');
+        }
+        throw new Error(body?.message || 'Request failed');
+    }
+    return body.data || {};
+}
+
+async function apiPostForm(url, formData) {
+    const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
     });
     const text = await res.text();
     let body = null;
@@ -213,9 +240,13 @@ function renderAnnouncements() {
     state.announcements.forEach((a) => {
         const card = document.createElement('div');
         card.className = 'card';
+        const fileHtml = a.attachment_url
+            ? `<p><a href="${escapeHtml(APP_BASE + '/' + String(a.attachment_url).replace(/^\/+/, ''))}" target="_blank" rel="noopener">Attachment: ${escapeHtml(a.attachment_name || 'Download file')}</a></p>`
+            : '';
         card.innerHTML = `
             <h3>${escapeHtml(a.title || 'Untitled')}</h3>
             <p>${escapeHtml(a.message || '')}</p>
+            ${fileHtml}
             <small>${escapeHtml(a.created_at || '')}</small>
         `;
         box.appendChild(card);
@@ -227,12 +258,14 @@ function openAnnouncementModal() {
     if (!modal) return;
     modal.classList.add('show');
     modal.classList.add('active');
+    showInlineMessage('announcementInlineMessage', '', false);
 }
 function closeAnnouncementModal() {
     const modal = document.getElementById('announcementModal');
     if (!modal) return;
     modal.classList.remove('show');
     modal.classList.remove('active');
+    showInlineMessage('announcementInlineMessage', '', false);
 }
 
 function onAnnouncementTargetModeChange() {
@@ -244,16 +277,39 @@ function onAnnouncementTargetModeChange() {
 }
 
 function openAnnouncementFilePicker() { document.getElementById('announcementFile')?.click(); }
-function removeAnnouncementFile() { const i = document.getElementById('announcementFile'); if (i) i.value = ''; }
+function removeAnnouncementFile() {
+    const i = document.getElementById('announcementFile');
+    if (i) i.value = '';
+    updateAnnouncementFilePreview();
+}
+
+function updateAnnouncementFilePreview() {
+    const input = document.getElementById('announcementFile');
+    const preview = document.getElementById('announcementFilePreview');
+    const name = document.getElementById('announcementFileName');
+    if (!input || !preview || !name) return;
+
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    if (!file) {
+        preview.style.display = 'none';
+        name.textContent = '';
+        return;
+    }
+
+    preview.style.display = 'flex';
+    name.textContent = file.name;
+}
 
 async function saveAnnouncement() {
     const mode = document.getElementById('announcementTargetMode')?.value || 'single';
     const title = (document.getElementById('announcementTitle')?.value || '').trim();
     const message = (document.getElementById('announcementContent')?.value || '').trim();
     const singleClassId = Number(document.getElementById('announcementClassSelect')?.value || 0);
+    const fileInput = document.getElementById('announcementFile');
+    const selectedFile = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
 
     if (!title || !message) {
-        showPageMessage('Please enter title and content.', true);
+        showInlineMessage('announcementInlineMessage', 'Please enter title and content.', true);
         return;
     }
 
@@ -271,15 +327,20 @@ async function saveAnnouncement() {
 
     try {
         for (const cid of classIds) {
-            await apiPost(API.createAnnouncement, { title, message, class_id: cid });
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('message', message);
+            formData.append('class_id', String(cid));
+            if (selectedFile) formData.append('announcement_file', selectedFile);
+            await apiPostForm(API.createAnnouncement, formData);
         }
-        showPageMessage('Announcement posted.', false);
-        alert('Announcement posted successfully.');
+        showInlineMessage('announcementInlineMessage', '', false);
+        showPageMessage('Announcement posted successfully.', false);
+        removeAnnouncementFile();
         closeAnnouncementModal();
         await loadAnnouncements();
     } catch (e) {
-        showPageMessage('Failed to post announcement: ' + e.message, true);
-        alert('Failed to post announcement: ' + e.message);
+        showInlineMessage('announcementInlineMessage', 'Failed to post announcement: ' + e.message, true);
     }
 }
 
@@ -369,10 +430,8 @@ async function loadSimpleStudentsForGrading() {
 
         body.querySelectorAll('tr').forEach((tr) => {
             const recalc = () => {
-                const a = Number(tr.querySelector('.score-ass')?.value || 0);
-                const m = Number(tr.querySelector('.score-mid')?.value || 0);
-                const f = Number(tr.querySelector('.score-fin')?.value || 0);
-                const t = Math.max(0, Math.min(100, a + m + f));
+                const scores = getRowScores(tr, true);
+                const t = scores.total;
                 tr.querySelector('.score-total').textContent = String(t);
                 tr.querySelector('.score-letter').textContent = gradeLetter(t);
             };
@@ -408,13 +467,16 @@ async function submitSimpleGrades() {
     try {
         for (const tr of rows) {
             const student = tr.dataset.student || '';
-            const total = Number(tr.querySelector('.score-total')?.textContent || 0);
+            const scores = getRowScores(tr, true);
             await apiPost(API.enterGrades, {
                 student_username: student,
                 class_id: classId,
                 term,
                 subject,
-                marks: total
+                assignment_marks: scores.assignment,
+                mid_marks: scores.mid,
+                final_marks: scores.final,
+                marks: scores.total
             });
         }
         showInlineMessage('gradingBulkMessage', 'Grades submitted successfully.', false);
@@ -431,9 +493,54 @@ function gradeLetter(total) {
     return 'F';
 }
 
+function clampNumber(value, min, max) {
+    if (!Number.isFinite(value)) return min;
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+function normalizeScoreInput(input, max) {
+    if (!input) return 0;
+    const raw = Number(input.value);
+    const safe = clampNumber(raw, 0, max);
+    if (!Number.isFinite(raw) || raw !== safe) {
+        input.value = String(safe);
+    }
+    return safe;
+}
+
+function getRowScores(tr, normalizeInputs) {
+    const assInput = tr.querySelector('.score-ass');
+    const midInput = tr.querySelector('.score-mid');
+    const finInput = tr.querySelector('.score-fin');
+
+    const assignment = normalizeInputs
+        ? normalizeScoreInput(assInput, ASSESSMENT_LIMITS.assignment)
+        : clampNumber(Number(assInput?.value || 0), 0, ASSESSMENT_LIMITS.assignment);
+    const mid = normalizeInputs
+        ? normalizeScoreInput(midInput, ASSESSMENT_LIMITS.mid)
+        : clampNumber(Number(midInput?.value || 0), 0, ASSESSMENT_LIMITS.mid);
+    const final = normalizeInputs
+        ? normalizeScoreInput(finInput, ASSESSMENT_LIMITS.final)
+        : clampNumber(Number(finInput?.value || 0), 0, ASSESSMENT_LIMITS.final);
+
+    return {
+        assignment,
+        mid,
+        final,
+        total: assignment + mid + final
+    };
+}
+
 function showInlineMessage(id, msg, isError) {
     const el = document.getElementById(id);
     if (!el) return;
+    if (!msg) {
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+    }
     el.style.display = 'block';
     el.textContent = msg;
     el.style.color = isError ? '#b91c1c' : '#166534';
@@ -441,10 +548,7 @@ function showInlineMessage(id, msg, isError) {
 
 function showPageMessage(msg, isError) {
     const el = document.getElementById('teacherPageMessage');
-    if (!el) {
-        alert(msg);
-        return;
-    }
+    if (!el) return;
     el.style.display = 'block';
     el.textContent = msg;
     el.style.color = isError ? '#b91c1c' : '#166534';

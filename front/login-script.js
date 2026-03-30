@@ -24,6 +24,8 @@ function switchLoginMode(mode) {
         staffForm.classList.add('active');
         studentForm.classList.remove('active');
     }
+
+    showError('');
 }
 
 async function handleLogin(event, mode) {
@@ -78,5 +80,15 @@ function togglePasswordVisibility(inputId) {
 }
 
 function showError(msg) {
-    alert(msg);
+    const box = document.getElementById('loginMessage');
+    if (!box) return;
+    if (!msg) {
+        box.style.display = 'none';
+        box.textContent = '';
+        box.className = 'login-message';
+        return;
+    }
+    box.style.display = 'block';
+    box.textContent = msg;
+    box.className = 'login-message error';
 }
