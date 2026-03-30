@@ -34,27 +34,27 @@ function switchLoginMode(mode) {
 
     // Update toggle buttons
     const studentToggle = document.getElementById('studentToggle');
-    const teacherToggle = document.getElementById('teacherToggle');
+    const staffToggle = document.getElementById('staffToggle');
 
     if (mode === 'student') {
         studentToggle.classList.add('active');
-        teacherToggle.classList.remove('active');
+        staffToggle.classList.remove('active');
     } else {
-        teacherToggle.classList.add('active');
+        staffToggle.classList.add('active');
         studentToggle.classList.remove('active');
     }
 
     // Show/hide forms
     const studentForm = document.getElementById('studentForm');
-    const teacherForm = document.getElementById('teacherForm');
+    const staffForm = document.getElementById('staffForm');
 
     if (mode === 'student') {
         studentForm.classList.add('active');
-        teacherForm.classList.remove('active');
-        // Clear teacher form
-        teacherForm.reset();
+        staffForm.classList.remove('active');
+        // Clear staff form
+        staffForm.reset();
     } else {
-        teacherForm.classList.add('active');
+        staffForm.classList.add('active');
         studentForm.classList.remove('active');
         // Clear student form
         studentForm.reset();
@@ -77,8 +77,8 @@ async function handleLogin(event, mode) {
         username = document.getElementById('studentUsername').value.trim();
         password = document.getElementById('studentPassword').value.trim();
     } else {
-        username = document.getElementById('teacherUsername').value.trim();
-        password = document.getElementById('teacherPassword').value.trim();
+        username = document.getElementById('staffUsername').value.trim();
+        password = document.getElementById('staffPassword').value.trim();
     }
 
     // Validate inputs
@@ -114,9 +114,17 @@ async function handleLogin(event, mode) {
 
         const user = result.data;
 
-        // Enforce page mode: student tab accepts only student, teacher tab accepts only teacher
-        if ((mode === 'student' && user.role !== 'student') || (mode === 'teacher' && user.role !== 'teacher')) {
-            showErrorMessage('Please use the correct login tab for your role', mode);
+        // Enforce page mode: student tab accepts only student, staff tab accepts teacher/admin/director
+        const allowedStaffRoles = ['teacher', 'admin', 'director'];
+        if (mode === 'student' && user.role !== 'student') {
+            showErrorMessage('Please use the Student button for this account', mode);
+            event.target.disabled = false;
+            buttonText.textContent = originalText;
+            return;
+        }
+
+        if (mode === 'staff' && !allowedStaffRoles.includes(user.role)) {
+            showErrorMessage('Please use the Staff button for this account', mode);
             event.target.disabled = false;
             buttonText.textContent = originalText;
             return;
@@ -158,7 +166,7 @@ function getPortalPath(role) {
     if (role === 'student') return 'student-dashboard.html';
     if (role === 'teacher') return 'teacher-dashboard.html';
     if (role === 'director') return 'director.html';
-    if (role === 'admin') return 'admin_login.html';
+    if (role === 'admin') return 'register.html';
     return '';
 }
 
@@ -187,7 +195,7 @@ function togglePasswordVisibility(inputId) {
 // ============================================================
 
 function showErrorMessage(message, mode) {
-    const form = mode === 'student' ? document.getElementById('studentForm') : document.getElementById('teacherForm');
+    const form = mode === 'student' ? document.getElementById('studentForm') : document.getElementById('staffForm');
     
     // Remove existing error if present
     const existingError = form.querySelector('.error-message');
@@ -240,15 +248,15 @@ function saveCredentials(mode, username) {
 
 function loadSavedCredentials() {
     const studentRemember = localStorage.getItem('student_remember') === '1';
-    const teacherRemember = localStorage.getItem('teacher_remember') === '1';
+    const staffRemember = localStorage.getItem('staff_remember') === '1';
     const studentUsername = localStorage.getItem('student_username') || '';
-    const teacherUsername = localStorage.getItem('teacher_username') || '';
+    const staffUsername = localStorage.getItem('staff_username') || '';
 
     if (studentRemember && document.getElementById('studentUsername')) {
         document.getElementById('studentUsername').value = studentUsername;
     }
-    if (teacherRemember && document.getElementById('teacherUsername')) {
-        document.getElementById('teacherUsername').value = teacherUsername;
+    if (staffRemember && document.getElementById('staffUsername')) {
+        document.getElementById('staffUsername').value = staffUsername;
     }
 }
 
@@ -268,7 +276,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Tab' && e.shiftKey) {
         e.preventDefault();
         if (currentLoginMode === 'student') {
-            switchLoginMode('teacher');
+            switchLoginMode('staff');
         } else {
             switchLoginMode('student');
         }

@@ -5,21 +5,17 @@ const API = {
     createAnnouncement: '../backend/teacher/create_announcement.php',
     classStudents: '../backend/teacher/get_class_students.php',
     classSubjects: '../backend/teacher/get_class_subjects.php',
-    classSchedule: '../backend/teacher/get_class_schedule.php',
-    teacherSchedule: '../backend/teacher/get_teacher_schedule.php',
     classGrades: '../backend/teacher/get_class_grades.php',
+    simpleGradeBookGet: '../backend/teacher/get_simple_grade_book.php',
+    simpleGradeBookSave: '../backend/teacher/save_simple_grade_book.php',
     enterGrades: '../backend/teacher/enter_grades.php',
     saveAssessmentStructure: '../backend/teacher/save_assessment_structure.php',
     getAssessmentStructure: '../backend/teacher/get_assessment_structure.php',
     saveAssessmentScores: '../backend/teacher/save_assessment_scores.php',
     getAssessmentScores: '../backend/teacher/get_assessment_scores.php',
     deleteAssessmentSnapshot: '../backend/teacher/delete_assessment_snapshot.php',
-    generateReport: '../backend/teacher/generate_report.php',
-    reports: '../backend/teacher/get_reports.php',
     resources: '../backend/teacher/get_resources.php',
     uploadResource: '../backend/teacher/upload_resource.php',
-    submissions: '../backend/teacher/get_submissions.php',
-    markSubmissionSeen: '../backend/teacher/mark_submission_seen.php'
 };
 
 const state = {
@@ -28,11 +24,7 @@ const state = {
     profile: null,
     announcements: [],
     resources: [],
-    submissions: [],
     classes: [],
-    schedule: [],
-    selectedSubmissionClass: null,
-    selectedSubmission: null,
     assessmentStructures: {},
     currentSection: '',
     currentStudents: [],
@@ -53,16 +45,6 @@ const state = {
     }
 };
 
-const TEACHER_SCHEDULE_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const TEACHER_SCHEDULE_SLOTS = [
-    { start: '08:00', end: '08:55' },
-    { start: '09:00', end: '09:55' },
-    { start: '10:15', end: '11:10' },
-    { start: '11:15', end: '12:15' },
-    { start: '13:30', end: '14:25' },
-    { start: '14:30', end: '15:25' }
-];
-
 document.addEventListener('DOMContentLoaded', async () => {
     state.user = getCurrentUser();
     if (!state.user || state.user.role !== 'teacher') {
@@ -78,18 +60,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initializeData() {
     try {
-        const [dashboardRes, profileRes, annRes, scheduleRes] = await Promise.all([
+        const [dashboardRes, profileRes, annRes] = await Promise.all([
             apiGet(`${API.dashboard}`),
             apiGet(`${API.profile}`),
-            apiGet(`${API.announcements}?page=1&limit=20`),
-            apiGet(`${API.teacherSchedule}`)
+            apiGet(`${API.announcements}?page=1&limit=20`)
         ]);
 
         state.dashboard = dashboardRes;
         state.profile = profileRes.teacher || null;
         state.announcements = annRes.announcements || [];
         state.classes = dashboardRes.assigned_classes || [];
-        state.schedule = scheduleRes.schedule || [];
         await loadDerivedTeacherMetrics();
 
         renderUserInfo();
@@ -152,32 +132,8 @@ function renderDashboard() {
     if (!d) return;
 
     setText('totalClasses', d.statistics?.total_classes ?? 0);
-    setText('pendingSubmissions', state.derived.pendingGrading ?? 0);
     setText('pendingGrading', state.derived.pendingGrading ?? 0);
     setText('totalStudents', d.statistics?.total_students ?? 0);
-    setText('submissionBadge', state.derived.pendingGrading ?? 0);
-
-    const recentSubmissionsContainer = document.getElementById('recentSubmissionsContainer');
-    if (recentSubmissionsContainer) {
-        recentSubmissionsContainer.innerHTML = '';
-        const recent = state.derived.recentGrades || [];
-        if (!recent.length) {
-            recentSubmissionsContainer.innerHTML = '<div class="submission-item"><div class="submission-item-info"><p class="name">No recent grade activity</p><p class="assignment">No grade has been entered yet.</p></div><span class="status-badge pending">Pending</span></div>';
-        } else {
-            recent.forEach((r) => {
-                const item = document.createElement('div');
-                item.className = 'submission-item';
-                item.innerHTML = `
-                    <div class="submission-item-info">
-                        <p class="name">${escapeHtml(r.full_name || r.student_username)}</p>
-                        <p class="assignment">${escapeHtml(r.subject || 'Subject')} - ${escapeHtml(r.class_name || 'Class')}</p>
-                    </div>
-                    <span class="status-badge graded">${escapeHtml(r.letter_grade || 'Graded')}</span>
-                `;
-                recentSubmissionsContainer.appendChild(item);
-            });
-        }
-    }
 
     const gradingStatusContainer = document.getElementById('gradingStatusContainer');
     if (gradingStatusContainer) {
@@ -213,10 +169,7 @@ function bindActions() {
     });
 
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
-    document.getElementById('classFilterSubmissions')?.addEventListener('change', loadSubmissions);
-    document.getElementById('statusFilterSubmissions')?.addEventListener('change', loadSubmissions);
     document.getElementById('classFilterResources')?.addEventListener('change', loadResources);
-    document.getElementById('classSelectReports')?.addEventListener('change', onReportsClassChange);
     document.getElementById('announcementFile')?.addEventListener('change', onAnnouncementFileSelected);
     document.getElementById('resourceFile')?.addEventListener('change', onResourceFileSelected);
     document.getElementById('announcementFileUploadArea')?.addEventListener('click', () => {
@@ -227,24 +180,6 @@ function bindActions() {
     });
 }
 
-function onReportsClassChange() {
-    const classId = Number(document.getElementById('classSelectReports')?.value || 0);
-    const sectionSelect = document.getElementById('sectionSelectReports');
-    if (!sectionSelect) return;
-    if (!classId) {
-        sectionSelect.value = '';
-        return;
-    }
-    const selectedClass = (state.classes || []).find((c) => Number(c.class_id) === classId);
-    if (selectedClass?.section) {
-        const sec = String(selectedClass.section).toUpperCase();
-        if ([...sectionSelect.options].some((o) => o.value === sec)) {
-            sectionSelect.value = sec;
-        } else {
-            sectionSelect.value = '';
-        }
-    }
-}
 
 function switchPage(pageName) {
     document.querySelectorAll('.page').forEach((page) => page.classList.remove('active'));
@@ -255,38 +190,23 @@ function switchPage(pageName) {
 
     const titles = {
         dashboard: 'Dashboard',
-        submissions: 'Student Submissions',
         grading: 'Grading Management',
-        classes: 'My Classes',
-        schedule: 'My Teaching Schedule',
         announcements: 'Announcements',
         resources: 'Course Resources',
-        reports: 'Grade Reports',
         profile: 'Teacher Profile'
     };
     setText('pageTitle', titles[pageName] || 'Dashboard');
-
-    if (pageName === 'submissions') {
-        loadSubmissions();
-    } else if (pageName === 'classes') {
-        loadClasses();
-    } else if (pageName === 'schedule') {
-        loadTeacherSchedule();
-    } else if (pageName === 'announcements') {
+    if (pageName === 'announcements') {
         loadAnnouncements();
     } else if (pageName === 'resources') {
         loadResources();
     } else if (pageName === 'grading') {
         loadGradingPage();
-    } else if (pageName === 'reports') {
-        loadReports();
     }
 }
 
 function populateClassSelects() {
     const selectIds = [
-        'classFilterSubmissions',
-        'classSelectReports',
         'announcementClassSelect',
         'announcementClassMultiSelect',
         'resourceClassSelect',
@@ -446,198 +366,12 @@ function getSelectedStepOneClasses() {
     return classesForSelectedGrade(grade).filter((c) => sections.includes(normalizeSectionValue(c.section)));
 }
 
-async function loadSubmissions() {
-    const tbody = document.getElementById('submissionsTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
 
-    const classId = document.getElementById('classFilterSubmissions')?.value || '';
-    const statusFilter = document.getElementById('statusFilterSubmissions')?.value || '';
 
-    try {
-        const qs = new URLSearchParams();
-        if (classId) qs.set('class_id', classId);
-        const normalizedStatus = statusFilter === 'pending' ? 'submitted' : statusFilter;
-        if (normalizedStatus && ['submitted', 'seen', 'graded'].includes(normalizedStatus)) qs.set('status', normalizedStatus);
-        const data = await apiGet(`${API.submissions}?${qs.toString()}`);
-        state.submissions = data.submissions || [];
-        tbody.innerHTML = '';
-        state.submissions.forEach((s) => {
-            const status = String(s.status || 'submitted').toLowerCase();
-            const statusLabel = status === 'graded' ? 'Graded' : (status === 'seen' ? 'Seen' : 'Submitted');
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${escapeHtml(s.student_name || s.student_username || '-')}</td>
-                <td>${escapeHtml(capitalizeText(s.resource_type || 'submission'))}</td>
-                <td>${escapeHtml(s.resource_title || '-')}</td>
-                <td>${escapeHtml(formatDate(s.submitted_at))}</td>
-                <td><span class="status-badge ${status}">${escapeHtml(statusLabel)}</span></td>
-                <td>
-                    <button class="btn btn-small btn-primary" onclick="viewSubmission(${Number(s.id || 0)})"><i class="fas fa-eye"></i> View</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-        if (!tbody.children.length) {
-            tbody.innerHTML = '<tr><td colspan="6">No submissions found</td></tr>';
-        }
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6">${escapeHtml(err.message)}</td></tr>`;
-    }
-}
 
-function viewSubmission(submissionId) {
-    const selected = (state.submissions || []).find((s) => Number(s.id) === Number(submissionId));
-    state.selectedSubmission = selected || null;
-    const details = document.getElementById('submissionDetails');
-    if (details) {
-        if (!selected) {
-            details.innerHTML = '<p>Submission not found.</p>';
-        } else {
-            const fileHref = selected.file_path ? `../backend/${encodeURI(String(selected.file_path).replace(/^\/+/, ''))}` : '';
-            details.innerHTML = `
-                <p><strong>Student:</strong> ${escapeHtml(selected.student_name || selected.student_username || '-')}</p>
-                <p><strong>Class:</strong> ${escapeHtml(selected.class_name || '-')}</p>
-                <p><strong>Type:</strong> ${escapeHtml(capitalizeText(selected.resource_type || 'submission'))}</p>
-                <p><strong>Task:</strong> ${escapeHtml(selected.resource_title || '-')}</p>
-                <p><strong>Submitted:</strong> ${escapeHtml(formatDate(selected.submitted_at))}</p>
-                <p><strong>Status:</strong> ${escapeHtml(capitalizeText(selected.status || 'submitted'))}</p>
-                <p><strong>Notes:</strong> ${escapeHtml(selected.notes || '-')}</p>
-                ${
-                    fileHref
-                        ? `<p><a class="btn btn-secondary" href="${fileHref}" target="_blank" rel="noopener"><i class="fas fa-download"></i> Open Submitted File (${escapeHtml(selected.file_name || 'Download')})</a></p>`
-                        : '<p>No file attached.</p>'
-                }
-            `;
-        }
-    }
-    document.getElementById('submissionModal')?.classList.add('show');
-}
 
-function closeSubmissionModal() {
-    document.getElementById('submissionModal')?.classList.remove('show');
-}
 
-async function markSubmissionAsSeen() {
-    const id = Number(state.selectedSubmission?.id || 0);
-    if (!id) {
-        showPageMessage('Please open a submission first.', 'error', 'submissions');
-        return;
-    }
-    try {
-        await apiPost(API.markSubmissionSeen, { submission_id: id });
-        closeSubmissionModal();
-        await loadSubmissions();
-        showPageMessage('Submission marked as seen.', 'success', 'submissions');
-    } catch (err) {
-        showPageMessage(err.message || 'Failed to mark submission as seen.', 'error', 'submissions');
-    }
-}
 
-function openGradingPanel() {
-    closeSubmissionModal();
-    switchPage('grading');
-}
-
-function loadClasses() {
-    const container = document.getElementById('classesContainer');
-    if (!container) return;
-    container.innerHTML = '';
-    state.classes.forEach((c) => {
-        const card = document.createElement('div');
-        card.className = 'card class-card';
-        card.innerHTML = `
-            <h3>${escapeHtml(c.name || `Class ${c.class_id}`)}</h3>
-            <div class="class-info">
-                <p><strong>Grade:</strong> ${escapeHtml(c.grade_level || '-')}</p>
-                <p><strong>Section:</strong> ${escapeHtml(c.section || '-')}</p>
-                <p><strong>Subject:</strong> ${escapeHtml(c.assigned_subjects || '-')}</p>
-                <p><strong>Stream:</strong> ${escapeHtml((c.stream || '-').toString())}</p>
-                <p><strong>Class ID:</strong> ${escapeHtml(String(c.class_id))}</p>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-async function loadTeacherSchedule() {
-    const tbody = document.getElementById('teacherScheduleTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b7280;">Loading schedule...</td></tr>';
-
-    try {
-        const data = await apiGet(`${API.teacherSchedule}`);
-        state.schedule = data.schedule || [];
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b91c1c;">${escapeHtml(err.message || 'Failed to load schedule')}</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = '';
-    renderTeacherScheduleGrid();
-}
-
-function renderTeacherScheduleGrid() {
-    const tbody = document.getElementById('teacherScheduleTableBody');
-    if (!tbody) return;
-
-    const slotMap = {};
-    state.schedule.forEach((item) => {
-        const day = String(item.day || '').trim();
-        const start = String(item.start_time || '').slice(0, 5);
-        if (!day || !start) return;
-        const key = `${day}|${start}`;
-        if (!slotMap[key]) slotMap[key] = [];
-        slotMap[key].push(item);
-    });
-
-    if (!state.schedule.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b7280;">No schedule found</td></tr>';
-        return;
-    }
-
-    TEACHER_SCHEDULE_SLOTS.forEach((slot) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="time">${escapeHtml(`${slot.start} - ${slot.end}`)}</td>`;
-
-        TEACHER_SCHEDULE_DAYS.forEach((day) => {
-            const cell = document.createElement('td');
-            cell.className = 'class-cell';
-            const key = `${day}|${slot.start}`;
-            const entries = slotMap[key] || [];
-
-            if (!entries.length) {
-                cell.innerHTML = '-';
-            } else {
-                const blocks = entries.map((item) => {
-                    const classLabel = item.class_name || `Grade ${item.grade_level || '-'} - ${item.section || '-'}`;
-                    const place = formatLocationLabel(item.room_number) || '-';
-                    return `${escapeHtml(item.subject_name || '-')}` +
-                        `<br><small>${escapeHtml(classLabel)}</small>` +
-                        `<br><small>${escapeHtml(place)}</small>`;
-                });
-                cell.innerHTML = blocks.join('<hr style="border:none;border-top:1px solid #eee;">');
-            }
-            tr.appendChild(cell);
-        });
-        tbody.appendChild(tr);
-    });
-}
-
-function formatLocationLabel(raw) {
-    const text = String(raw || '').trim();
-    if (!text) return '';
-    const idx = text.indexOf('|');
-    if (idx > 0) {
-        const type = text.slice(0, idx).toLowerCase();
-        const value = text.slice(idx + 1).trim();
-        if (type === 'lab') return `Lab-${value || '-'}`;
-        if (type === 'field') return `Field-${value || '-'}`;
-        return `Lec-${value || '-'}`;
-    }
-    if (/^(lab|lec|field)[-_]/i.test(text)) return text;
-    return text;
-}
 
 function loadAnnouncements() {
     const container = document.getElementById('announcementsContainer');
@@ -700,57 +434,9 @@ function loadResources() {
         });
 }
 
-function loadReports() {
-    const container = document.getElementById('reportsContainer');
-    if (!container) return;
-    container.innerHTML = '<div class="card report-item"><div class="report-item-info"><h4>Loading reports...</h4><p>Please wait</p></div><span class="status">Loading</span></div>';
-
-    apiGet(`${API.reports}?page=1&limit=20`)
-        .then((data) => {
-            const list = data.reports || [];
-            container.innerHTML = '';
-            if (!list.length) {
-                container.innerHTML = `
-                    <div class="card report-item">
-                        <div class="report-item-info">
-                            <h4>No reports yet</h4>
-                            <p>Generate a class report and it will appear here.</p>
-                        </div>
-                        <span class="status">Empty</span>
-                    </div>
-                `;
-                return;
-            }
-            list.forEach((r) => {
-                const summary = r.summary || {};
-                const card = document.createElement('div');
-                card.className = 'card report-item';
-                card.innerHTML = `
-                    <div class="report-item-info">
-                        <h4>${escapeHtml(`Grade ${r.grade_level} - Section ${r.section}`)}</h4>
-                        <p>${escapeHtml(`Students: ${summary.total_students ?? 0}, Graded: ${summary.graded_students ?? 0}, Pending: ${summary.pending_students ?? 0}, Avg: ${summary.class_average ?? 0}`)}</p>
-                        <p>${escapeHtml(`Generated: ${formatDate(r.generated_at)}`)}</p>
-                    </div>
-                    <span class="status">${escapeHtml(r.status || 'submitted')}</span>
-                `;
-                container.appendChild(card);
-            });
-        })
-        .catch((err) => {
-            container.innerHTML = `
-                <div class="card report-item">
-                    <div class="report-item-info">
-                        <h4>Failed to load reports</h4>
-                        <p>${escapeHtml(err.message || 'Unknown error')}</p>
-                    </div>
-                    <span class="status">Error</span>
-                </div>
-            `;
-        });
-}
 
 function loadGradingPage() {
-    switchGradingStep('step2');
+    // Grade page is now a single streamlined workflow.
 }
 
 async function loadDerivedTeacherMetrics() {
@@ -833,6 +519,183 @@ function onGradingSubjectChange() {
     renderHistoryTables([]);
     hideGradingDecisionPrompt();
     showGradingScoresMessage('', 'info', false);
+}
+
+async function loadSimpleStudentsForGrading() {
+    const selectedGrade = document.getElementById('classSelectForGrading')?.value || '';
+    const selectedSection = document.getElementById('sectionSelectForGrading')?.value || '';
+    const subject = document.getElementById('gradingSubjectSelect')?.value || '';
+    const term = document.getElementById('gradingTermSelect')?.value || 'Term1';
+    const sectionEl = document.getElementById('gradingTableSection');
+
+    if (!selectedGrade) {
+        showGradingScoresMessage('Please choose grade first.', 'error', true);
+        if (sectionEl) sectionEl.style.display = 'none';
+        return;
+    }
+    if (!selectedSection) {
+        showGradingScoresMessage('Please choose section first.', 'error', true);
+        if (sectionEl) sectionEl.style.display = 'none';
+        return;
+    }
+    if (!subject) {
+        showGradingScoresMessage('Please choose subject first.', 'error', true);
+        if (sectionEl) sectionEl.style.display = 'none';
+        return;
+    }
+
+    const selectedClass = classForSelectedGradeAndSection(selectedGrade, selectedSection);
+    if (!selectedClass?.class_id) {
+        showGradingScoresMessage('Class not found for selected grade/section.', 'error', true);
+        if (sectionEl) sectionEl.style.display = 'none';
+        return;
+    }
+
+    try {
+        const [studentsData, scoresData] = await Promise.all([
+            apiGet(`${API.classStudents}?class_id=${selectedClass.class_id}`),
+            apiGet(`${API.simpleGradeBookGet}?class_id=${selectedClass.class_id}&subject=${encodeURIComponent(subject)}&term=${encodeURIComponent(term)}`)
+        ]);
+        const students = studentsData.students || [];
+        const scoreMap = scoresData.scores || {};
+        state.currentStudents = students;
+        state.currentAssessmentContext = {
+            class_id: Number(selectedClass.class_id),
+            subject,
+            term
+        };
+
+        buildSimpleGradingTable(students, scoreMap, selectedGrade);
+        if (sectionEl) sectionEl.style.display = 'block';
+        showGradingScoresMessage(`Loaded ${students.length} students.`, 'success', true);
+    } catch (err) {
+        showGradingScoresMessage(err.message, 'error', true);
+        if (sectionEl) sectionEl.style.display = 'none';
+    }
+}
+
+function buildSimpleGradingTable(students, scoreMap, selectedGrade) {
+    const body = document.getElementById('gradingTableBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    students.forEach((s) => {
+        const existing = scoreMap?.[s.student_username] || {};
+        const assignment = Number(existing.assignment ?? 0);
+        const midExam = Number(existing.mid_exam ?? 0);
+        const finalExam = Number(existing.final_exam ?? 0);
+        const total = assignment + midExam + finalExam;
+        const letter = totalToLetter(total);
+
+        const tr = document.createElement('tr');
+        tr.dataset.studentUsername = String(s.student_username || '');
+        tr.innerHTML = `
+            <td><input type="checkbox" class="simple-grade-select"></td>
+            <td>${escapeHtml(s.student_username)}</td>
+            <td>${escapeHtml(s.full_name || s.student_username)}</td>
+            <td>${escapeHtml(gradeLabel(selectedGrade))}</td>
+            <td><input type="number" class="grade-input simple-assignment" min="0" max="10" value="${escapeHtml(String(assignment))}" oninput="recalculateSimpleRow(this)"></td>
+            <td><input type="number" class="grade-input simple-mid" min="0" max="30" value="${escapeHtml(String(midExam))}" oninput="recalculateSimpleRow(this)"></td>
+            <td><input type="number" class="grade-input simple-final" min="0" max="60" value="${escapeHtml(String(finalExam))}" oninput="recalculateSimpleRow(this)"></td>
+            <td><span class="total-grade">${escapeHtml(String(total))}</span></td>
+            <td><span class="grade-letter-display">${escapeHtml(letter)}</span></td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function clampScore(value, min, max) {
+    let n = Number(value);
+    if (!Number.isFinite(n)) n = 0;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    return n;
+}
+
+function recalculateSimpleRow(input) {
+    const row = input?.closest('tr');
+    if (!row) return;
+
+    const assignmentInput = row.querySelector('.simple-assignment');
+    const midInput = row.querySelector('.simple-mid');
+    const finalInput = row.querySelector('.simple-final');
+    if (!assignmentInput || !midInput || !finalInput) return;
+
+    assignmentInput.value = String(clampScore(assignmentInput.value, 0, 10));
+    midInput.value = String(clampScore(midInput.value, 0, 30));
+    finalInput.value = String(clampScore(finalInput.value, 0, 60));
+
+    const total = Number(assignmentInput.value) + Number(midInput.value) + Number(finalInput.value);
+    const letter = totalToLetter(total);
+    const totalEl = row.querySelector('.total-grade');
+    const letterEl = row.querySelector('.grade-letter-display');
+    if (totalEl) totalEl.textContent = String(total);
+    if (letterEl) letterEl.textContent = letter;
+}
+
+function totalToLetter(total) {
+    if (total >= 90) return 'A+';
+    if (total >= 80) return 'A';
+    if (total >= 70) return 'B';
+    if (total >= 60) return 'C';
+    if (total >= 50) return 'D';
+    return 'F';
+}
+
+function toggleSelectAllSimpleStudents(checkbox) {
+    const checked = Boolean(checkbox?.checked);
+    document.querySelectorAll('#gradingTableBody .simple-grade-select').forEach((el) => {
+        el.checked = checked;
+    });
+}
+
+async function submitSimpleGrades() {
+    const subject = state.currentAssessmentContext.subject || String(document.getElementById('gradingSubjectSelect')?.value || '').trim();
+    if (!subject) {
+        showGradingBulkMessage('Select subject first.', 'error', true);
+        return;
+    }
+    const classId = Number(state.currentAssessmentContext.class_id || 0);
+    if (!classId) {
+        showGradingBulkMessage('Load students first.', 'error', true);
+        return;
+    }
+
+    const rows = [...document.querySelectorAll('#gradingTableBody tr')];
+    const payloadRows = [];
+    rows.forEach((row) => {
+        const selected = row.querySelector('.simple-grade-select')?.checked;
+        if (!selected) return;
+        const studentUsername = row.dataset.studentUsername || '';
+        if (!studentUsername) return;
+
+        const assignment = clampScore(row.querySelector('.simple-assignment')?.value ?? 0, 0, 10);
+        const midExam = clampScore(row.querySelector('.simple-mid')?.value ?? 0, 0, 30);
+        const finalExam = clampScore(row.querySelector('.simple-final')?.value ?? 0, 0, 60);
+        payloadRows.push({
+            student_username: studentUsername,
+            assignment,
+            mid_exam: midExam,
+            final_exam: finalExam
+        });
+    });
+
+    if (!payloadRows.length) {
+        showGradingBulkMessage('Select at least one student to submit.', 'error', true);
+        return;
+    }
+
+    try {
+        const result = await apiPost(API.simpleGradeBookSave, {
+            class_id: classId,
+            subject,
+            term: state.currentAssessmentContext.term || 'Term1',
+            rows: payloadRows
+        });
+        showGradingBulkMessage(`Saved ${result.saved || 0} student grade(s).`, 'success', true);
+    } catch (err) {
+        showGradingBulkMessage(`Failed to save grades: ${err.message}`, 'error', true);
+    }
 }
 
 async function loadClassSubjectsForGrading() {
@@ -1644,25 +1507,6 @@ async function saveResource() {
     }
 }
 
-async function generateReport() {
-    const classId = Number(document.getElementById('classSelectReports')?.value || 0);
-    const section = String(document.getElementById('sectionSelectReports')?.value || '').trim();
-    if (!classId) {
-        showPageMessage('Please choose a class before generating report.', 'error', 'reports');
-        return;
-    }
-
-    try {
-        const data = await apiPost(API.generateReport, {
-            class_id: classId,
-            section
-        });
-        showPageMessage(`Report generated successfully. Report ID: ${data.report_id}`, 'success', 'reports');
-        loadReports();
-    } catch (err) {
-        showPageMessage(`Failed to generate report: ${err.message}`, 'error', 'reports');
-    }
-}
 
 function downloadFile(filename) {
     if (!filename) return;
@@ -1915,3 +1759,4 @@ async function onStepOneSubjectChange() {
     editor.style.display = 'block';
     updateTotalPoints();
 }
+

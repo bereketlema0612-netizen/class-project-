@@ -15,15 +15,6 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'teacher') {
 if (!$class_id) {
     sendResponse(false, 'Class ID required', null, 400);
 }
-$teacher_username = $_SESSION['username'];
-ensureAssignmentBlockColumn($conn);
-
-$stmt = $conn->prepare("SELECT id FROM assignments WHERE class_id = ? AND teacher_username = ? AND assignment_type = 'teacher' AND is_blocked = 0");
-$stmt->bind_param("is", $class_id, $teacher_username);
-$stmt->execute();
-if ($stmt->get_result()->num_rows === 0) {
-    sendResponse(false, 'Teacher not assigned to this class', null, 403);
-}
 
 $stmt = $conn->prepare("SELECT c.id, CONCAT('Grade ', c.grade_level, ' - ', c.section) AS name, c.grade_level, c.section FROM classes c WHERE c.id = ?");
 $stmt->bind_param("i", $class_id);

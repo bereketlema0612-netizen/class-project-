@@ -52,11 +52,32 @@ $attachmentNameExpr = $hasAttachmentName ? 'a.attachment_name' : 'NULL';
 $attachmentMimeExpr = $hasAttachmentMime ? 'a.attachment_mime' : 'NULL';
 $attachmentSizeExpr = $hasAttachmentSize ? 'a.attachment_size' : 'NULL';
 
-$stmt = $conn->prepare("SELECT a.id, a.title, a.message, {$contentExpr} as content, a.priority, a.audience, {$targetUsersExpr} AS target_usernames, a.created_at, {$attachmentPathExpr} AS attachment_path, {$attachmentNameExpr} AS attachment_name, {$attachmentMimeExpr} AS attachment_mime, {$attachmentSizeExpr} AS attachment_size FROM announcements a WHERE (a.audience = 'teachers' OR a.audience = 'all' OR (a.audience = 'individual' AND FIND_IN_SET(?, COALESCE(a.target_usernames, ''))) OR a.created_by_username = ?) ORDER BY a.created_at DESC LIMIT ? OFFSET ?");
+$conditions = ["a.audience = 'teachers'", "a.audience = 'all'", "a.created_by_username = ?"];
+$types = 's';
+$params = [$_SESSION['username']];
+if ($hasTargetUsers) {
+    $conditions[] = "(a.audience = 'individual' AND FIND_IN_SET(?, COALESCE(a.target_usernames, '')))";
+    $types .= 's';
+    $params[] = $_SESSION['username'];
+}
+$types .= 'ii';
+$params[] = $limit;
+$params[] = $offset;
+
+$whereSql = implode(' OR ', $conditions);
+$sql = "SELECT a.id, a.title, a.message, {$contentExpr} as content, a.priority, a.audience, {$targetUsersExpr} AS target_usernames, a.created_at, {$attachmentPathExpr} AS attachment_path, {$attachmentNameExpr} AS attachment_name, {$attachmentMimeExpr} AS attachment_mime, {$attachmentSizeExpr} AS attachment_size FROM announcements a WHERE ({$whereSql}) ORDER BY a.created_at DESC LIMIT ? OFFSET ?";
+
+$stmt = $conn->prepare($sql);
 if (!$stmt) {
     sendResponse(false, 'Failed to prepare announcements query: ' . $conn->error, null, 500);
 }
-$stmt->bind_param("ssii", $_SESSION['username'], $_SESSION['username'], $limit, $offset);
+
+$bindParams = [$types];
+foreach ($params as $key => $value) {
+    $bindParams[] = &$params[$key];
+}
+call_user_func_array([$stmt, 'bind_param'], $bindParams);
+
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -65,8 +86,24 @@ while ($row = $result->fetch_assoc()) {
     $announcements[] = $row;
 }
 
-$countStmt = $conn->prepare("SELECT COUNT(*) as total FROM announcements WHERE audience = 'teachers' OR audience = 'all' OR (audience = 'individual' AND FIND_IN_SET(?, COALESCE(target_usernames, ''))) OR created_by_username = ?");
-$countStmt->bind_param("ss", $_SESSION['username'], $_SESSION['username']);
+$countConditions = ["audience = 'teachers'", "audience = 'all'", "created_by_username = ?"];
+$countTypes = 's';
+$countParams = [$_SESSION['username']];
+if ($hasTargetUsers) {
+    $countConditions[] = "(audience = 'individual' AND FIND_IN_SET(?, COALESCE(target_usernames, '')))";
+    $countTypes .= 's';
+    $countParams[] = $_SESSION['username'];
+}
+$countSql = "SELECT COUNT(*) as total FROM announcements WHERE " . implode(' OR ', $countConditions);
+$countStmt = $conn->prepare($countSql);
+if (!$countStmt) {
+    sendResponse(false, 'Failed to prepare announcements count query: ' . $conn->error, null, 500);
+}
+$countBindParams = [$countTypes];
+foreach ($countParams as $key => $value) {
+    $countBindParams[] = &$countParams[$key];
+}
+call_user_func_array([$countStmt, 'bind_param'], $countBindParams);
 $countStmt->execute();
 $countResult = $countStmt->get_result();
 $countRow = $countResult->fetch_assoc();

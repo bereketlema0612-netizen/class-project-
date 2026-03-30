@@ -60,24 +60,18 @@ $stmt->execute();
 $teacher = $stmt->get_result()->fetch_assoc();
 
 $streamExpr = hasColumn($conn, 'classes', 'stream') ? 'c.stream' : 'NULL AS stream';
-$hasAssignmentSubjectCol = hasColumn($conn, 'assignments', 'subject');
-$assignmentSubjectExpr = $hasAssignmentSubjectCol ? 'a.subject' : "''";
 $stmt = mustPrepare($conn, "
     SELECT
-           a.class_id,
-           a.teacher_username,
+           c.id AS class_id,
+           ? AS teacher_username,
            c.grade_level,
            c.section,
            {$streamExpr},
            CONCAT('Grade ', c.grade_level, ' - ', c.section) AS name,
-           GROUP_CONCAT(DISTINCT COALESCE(s.subject_name, {$assignmentSubjectExpr}) ORDER BY COALESCE(s.subject_name, {$assignmentSubjectExpr}) SEPARATOR ', ') AS assigned_subjects
-    FROM assignments a
-    JOIN classes c ON a.class_id = c.id
-    LEFT JOIN subjects s ON s.id = a.subject_id
-    WHERE a.teacher_username = ? AND a.assignment_type = 'teacher' AND a.is_blocked = 0
-    GROUP BY a.class_id, a.teacher_username, c.grade_level, c.section, c.stream
+           '' AS assigned_subjects
+    FROM classes c
     ORDER BY c.grade_level, c.section
-", 'assigned classes lookup');
+", 'classes lookup');
 $stmt->bind_param('s', $teacherUsername);
 $stmt->execute();
 $assignmentResult = $stmt->get_result();
@@ -89,9 +83,8 @@ while ($row = $assignmentResult->fetch_assoc()) {
 $stmt = mustPrepare($conn, "
     SELECT COUNT(DISTINCT student_username) as total_students
     FROM class_enrollments
-    WHERE class_id IN (SELECT class_id FROM assignments WHERE teacher_username = ? AND assignment_type = 'teacher' AND is_blocked = 0)
+    WHERE class_id IN (SELECT id FROM classes)
 ", 'student statistics');
-$stmt->bind_param('s', $teacherUsername);
 $stmt->execute();
 $studentCount = $stmt->get_result()->fetch_assoc()['total_students'] ?? 0;
 
@@ -100,9 +93,8 @@ if (tableExists($conn, 'grades')) {
     $stmt = mustPrepare($conn, "
         SELECT COUNT(*) as total_grades
         FROM grades
-        WHERE class_id IN (SELECT class_id FROM assignments WHERE teacher_username = ? AND assignment_type = 'teacher' AND is_blocked = 0)
+        WHERE class_id IN (SELECT id FROM classes)
     ", 'grades statistics');
-    $stmt->bind_param('s', $teacherUsername);
     $stmt->execute();
     $gradeCount = $stmt->get_result()->fetch_assoc()['total_grades'] ?? 0;
 }
@@ -110,9 +102,8 @@ if (tableExists($conn, 'grades')) {
 $stmt = mustPrepare($conn, "
     SELECT COUNT(*) as total_schedules
     FROM class_schedules
-    WHERE class_id IN (SELECT class_id FROM assignments WHERE teacher_username = ? AND assignment_type = 'teacher' AND is_blocked = 0)
+    WHERE class_id IN (SELECT id FROM classes)
 ", 'schedules statistics');
-$stmt->bind_param('s', $teacherUsername);
 $stmt->execute();
 $scheduleCount = $stmt->get_result()->fetch_assoc()['total_schedules'] ?? 0;
 

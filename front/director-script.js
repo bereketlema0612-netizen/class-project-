@@ -1,13 +1,10 @@
 const API = {
-    dashboard: '../backend/director/get_dashboard_overview.php',
     users: '../backend/director/get_users.php',
     userStatus: '../backend/director/mange_user_status.php',
     createAnnouncement: '../backend/director/create%20annoucement.php',
     announcements: '../backend/director/get_annoucements.php',
-    reports: '../backend/director/generate_report.php',
     schoolSettings: '../backend/director/get_school_settings.php',
     updateSettings: '../backend/director/update_school_settings.php',
-    auditLogs: '../backend/director/get_audit_logs.php',
     registrationAdmins: '../backend/director/get_registration_admins.php',
     createAdmin: '../backend/director/create_registeration_admin.php',
     deleteAnnouncement: '../backend/director/delete_annoucement.php'
@@ -40,7 +37,6 @@ async function initializeDashboard() {
     await Promise.all([
         loadDashboardStats(),
         loadAnnouncementsList(),
-        loadAuditLogs(),
         loadSchoolSettings()
     ]);
 }
@@ -53,7 +49,6 @@ function setupEventListeners() {
         });
     });
 
-    document.getElementById('logFilter')?.addEventListener('change', () => loadAuditLogs());
     document.getElementById('directorSendTo')?.addEventListener('change', onDirectorSendToChange);
     document.getElementById('directorRecipientSearch')?.addEventListener('input', syncDirectorRecipientSelection);
 
@@ -73,25 +68,16 @@ function switchPage(page) {
 
     const titles = {
         dashboard: 'Dashboard',
-        'system-overview': 'System Overview',
         'user-management': 'User Management',
         announcements: 'Announcements',
-        reports: 'Reports & Analytics',
-        settings: 'School Settings',
-        'audit-logs': 'Audit & Logs'
+        settings: 'School Settings'
     };
     setText('pageTitle', titles[page] || 'Dashboard');
 
-    if (page === 'system-overview') {
-        loadSystemOverview();
-    } else if (page === 'user-management') {
+    if (page === 'user-management') {
         switchUserTab('students');
     } else if (page === 'announcements') {
         loadAnnouncementsList();
-    } else if (page === 'audit-logs') {
-        loadAuditLogs();
-    } else if (page === 'reports') {
-        loadReportQuickStats();
     } else if (page === 'settings') {
         loadSchoolSettings();
     }
@@ -147,37 +133,24 @@ async function apiFormPost(url, formData) {
 
 async function loadDashboardStats() {
     try {
-        const data = await apiGet(API.dashboard);
-        state.dashboard = data;
+        const [allUsers, students, teachers, admins, announcements] = await Promise.all([
+            apiGet(`${API.users}?page=1&limit=10000`),
+            apiGet(`${API.users}?role=student&page=1&limit=1`),
+            apiGet(`${API.users}?role=teacher&page=1&limit=1`),
+            apiGet(`${API.users}?role=admin&page=1&limit=1`),
+            apiGet(`${API.announcements}?page=1&limit=1`)
+        ]);
+        state.dashboard = allUsers;
 
-        setText('totalStudents', data.statistics?.total_students ?? 0);
-        setText('totalTeachers', data.statistics?.total_teachers ?? 0);
-        setText('dashPendingCount', data.statistics?.total_registrations ?? 0);
-        setText('totalApproved', data.statistics?.active_users ?? 0);
-        setText('totalAdmins', data.statistics?.active_admins ?? 0);
-        setText('totalAnnouncements', data.statistics?.active_announcements ?? 0);
-
-        loadSystemOverview();
+        setText('totalStudents', students.pagination?.total_records ?? 0);
+        setText('totalTeachers', teachers.pagination?.total_records ?? 0);
+        setText('dashPendingCount', allUsers.pagination?.total_records ?? 0);
+        setText('totalApproved', (allUsers.users || []).filter((u) => String(u.status || '').toLowerCase() === 'active').length);
+        setText('totalAdmins', admins.pagination?.total_records ?? 0);
+        setText('totalAnnouncements', announcements.pagination?.total_records ?? 0);
     } catch (err) {
         showPageMessage('Failed to load dashboard: ' + err.message, 'error', true);
     }
-}
-
-function loadSystemOverview() {
-    const d = state.dashboard;
-    if (!d) return;
-    setText('pending-count', d.status_breakdown?.inactive ?? 0);
-    setText('approved-count', d.status_breakdown?.active ?? 0);
-    setText('rejected-count', d.status_breakdown?.pending ?? 0);
-
-    const gradeMap = {};
-    (d.grade_distribution || []).forEach((g) => {
-        gradeMap[String(g.grade_level)] = g.count;
-    });
-    setText('grade9-count', gradeMap['9'] ?? gradeMap['Grade 9'] ?? 0);
-    setText('grade10-count', gradeMap['10'] ?? gradeMap['Grade 10'] ?? 0);
-    setText('grade11-count', gradeMap['11'] ?? gradeMap['Grade 11'] ?? 0);
-    setText('grade12-count', gradeMap['12'] ?? gradeMap['Grade 12'] ?? 0);
 }
 
 // Registration approval flow removed.
@@ -539,37 +512,6 @@ async function deleteDirectorAnnouncement(id) {
     }
 }
 
-function mapReportType(v) {
-    if (v === 'enrollment') return 'enrollment';
-    if (v === 'by-grade') return 'grades';
-    if (v === 'certifications') return 'certifications';
-    if (v === 'promotions') return 'promotions';
-    if (v === 'by-department') return 'grades';
-    return 'registrations';
-}
-
-async function handleGenerateReport(event) {
-    event.preventDefault();
-    const form = event.target;
-    const fd = new FormData(form);
-    const type = mapReportType(String(fd.get('reportType') || 'enrollment'));
-    const range = String(fd.get('dateRange') || 'all');
-    try {
-        const data = await apiGet(`${API.reports}?type=${encodeURIComponent(type)}&range=${encodeURIComponent(range)}`);
-        showPageMessage(`Report generated: ${data.report_type} (${formatDate(data.generated_at)})`, 'success');
-        loadReportQuickStats();
-    } catch (err) {
-        showPageMessage('Failed to generate report: ' + err.message, 'error', true);
-    }
-}
-
-function loadReportQuickStats() {
-    const d = state.dashboard?.statistics || {};
-    setText('report-total-registrations', d.total_registrations ?? 0);
-    setText('report-approved-month', d.active_users ?? 0);
-    setText('report-certificates', '-');
-    setText('report-promotions', '-');
-}
 
 async function loadSchoolSettings() {
     try {
@@ -645,53 +587,10 @@ async function handleSaveAcademicCalendar(event) {
     }
 }
 
-async function loadAuditLogs() {
-    const table = document.getElementById('auditLogsTable');
-    if (!table) return;
-    table.innerHTML = '';
-    const filter = document.getElementById('logFilter')?.value || 'all';
-    const actionMap = {
-        approvals: 'APPROVAL',
-        rejections: 'REJECTION',
-        'user-actions': '',
-        'admin-actions': ''
-    };
-    const action = actionMap[filter] ?? '';
-
-    try {
-        const url = action ? `${API.auditLogs}?page=1&limit=50&action=${encodeURIComponent(action)}` : `${API.auditLogs}?page=1&limit=50`;
-        const data = await apiGet(url);
-        let logs = data.logs || [];
-        if (filter === 'user-actions') {
-            logs = logs.filter((l) => ['APPROVAL', 'REJECTION', 'USER_ACTIVATE', 'USER_DEACTIVATE'].includes(l.action));
-        } else if (filter === 'admin-actions') {
-            logs = logs.filter((l) => l.action.startsWith('CREATE_') || l.action.includes('SETTINGS') || l.action.includes('REPORT'));
-        }
-
-        logs.forEach((l) => {
-            const tr = document.createElement('tr');
-            const fullName = [l.fname, l.lname].filter(Boolean).join(' ') || l.username || '-';
-            tr.innerHTML = `
-                <td>${escapeHtml(formatDate(l.timestamp))}</td>
-                <td>${escapeHtml(fullName)}</td>
-                <td>${escapeHtml(l.action)}</td>
-                <td>${escapeHtml(l.description)}</td>
-                <td><span class="status-badge ${l.status === 'success' ? 'approved' : 'pending'}">${escapeHtml(l.status)}</span></td>
-            `;
-            table.appendChild(tr);
-        });
-        if (!logs.length) {
-            table.innerHTML = '<tr><td colspan="5" style="text-align:center;">No logs found</td></tr>';
-        }
-    } catch (err) {
-        table.innerHTML = `<tr><td colspan="5">${escapeHtml(err.message)}</td></tr>`;
-        showPageMessage('Failed to load audit logs: ' + err.message, 'error');
-    }
-}
 
 function logout() {
     localStorage.removeItem('currentUser');
-    window.location.href = 'admin_login.html';
+    window.location.href = 'login.html';
 }
 
 function getCurrentUser() {

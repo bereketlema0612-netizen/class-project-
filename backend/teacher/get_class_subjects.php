@@ -18,14 +18,6 @@ if ($classId <= 0) {
 }
 
 $teacherUsername = $_SESSION['username'];
-ensureAssignmentBlockColumn($conn);
-
-$assignmentStmt = $conn->prepare("SELECT id FROM assignments WHERE class_id = ? AND teacher_username = ? AND assignment_type = 'teacher' AND is_blocked = 0 LIMIT 1");
-$assignmentStmt->bind_param("is", $classId, $teacherUsername);
-$assignmentStmt->execute();
-if ($assignmentStmt->get_result()->num_rows === 0) {
-    sendResponse(false, 'Teacher not assigned to this class', null, 403);
-}
 
 $hasStreamCol = false;
 $streamColRes = $conn->query("SHOW COLUMNS FROM classes LIKE 'stream'");
@@ -49,34 +41,6 @@ $stream = normalizeStream($classRow['stream'] ?? '');
 $curriculumList = curriculumSubjects($gradeDigits, $stream);
 
 $teacherSubjects = [];
-$hasAssignmentSubjectCol = false;
-$assignmentSubjectColRes = $conn->query("SHOW COLUMNS FROM assignments LIKE 'subject'");
-if ($assignmentSubjectColRes && $assignmentSubjectColRes->num_rows > 0) {
-    $hasAssignmentSubjectCol = true;
-}
-
-$subjectExpr = $hasAssignmentSubjectCol
-    ? "COALESCE(s.subject_name, a.subject)"
-    : "COALESCE(s.subject_name, '')";
-
-$subjectSql = "
-    SELECT DISTINCT {$subjectExpr} AS subject_name
-    FROM assignments a
-    LEFT JOIN subjects s ON a.subject_id = s.id
-    WHERE a.class_id = ? AND a.teacher_username = ? AND a.is_blocked = 0
-";
-$subjectStmt = $conn->prepare($subjectSql);
-$subjectStmt->bind_param("is", $classId, $teacherUsername);
-$subjectStmt->execute();
-$subjectResult = $subjectStmt->get_result();
-while ($row = $subjectResult->fetch_assoc()) {
-    $name = trim((string)($row['subject_name'] ?? ''));
-    if ($name !== '') {
-        $teacherSubjects[] = $name;
-    }
-}
-
-$teacherSubjects = array_values(array_unique($teacherSubjects));
 
 // Fallback from teacher profile subject field.
 $teacherProfileStmt = $conn->prepare("SELECT subject FROM teachers WHERE username = ? LIMIT 1");
