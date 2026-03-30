@@ -7,8 +7,6 @@ const API = {
     profile: APP_BASE + '/backend/teacher/get_teacher_profile.php',
     announcements: APP_BASE + '/backend/teacher/get_announcements.php',
     createAnnouncement: APP_BASE + '/backend/teacher/create_announcement.php',
-    resources: APP_BASE + '/backend/teacher/get_resources.php',
-    uploadResource: APP_BASE + '/backend/teacher/upload_resource.php',
     classStudents: APP_BASE + '/backend/teacher/get_class_students.php',
     classSubjects: APP_BASE + '/backend/teacher/get_class_subjects.php',
     enterGrades: APP_BASE + '/backend/teacher/enter_grades.php',
@@ -20,7 +18,6 @@ const state = {
     dashboard: null,
     profile: null,
     announcements: [],
-    resources: [],
     classes: [],
     selectedClassIdForGrading: 0
 };
@@ -33,12 +30,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
-    const resourcesFilter = document.getElementById('classFilterResources');
-    if (resourcesFilter) {
-        resourcesFilter.addEventListener('change', function () {
-            loadResources();
-        });
-    }
     document.querySelectorAll('.nav-item').forEach((item) => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
@@ -65,7 +56,6 @@ async function initializeTeacherPage() {
         renderBasicTeacherInfo();
         populateClassSelects();
         renderAnnouncements();
-        await loadResources();
     } catch (e) {
         showPageMessage('Failed to load teacher data: ' + e.message, true);
     }
@@ -92,25 +82,6 @@ async function apiPost(url, payload) {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-    });
-    const text = await res.text();
-    let body = null;
-    try { body = JSON.parse(text); } catch (_) { throw new Error('Server returned invalid JSON: ' + text.slice(0, 120)); }
-    if (!body || !body.success) {
-        if (String(body?.message || '').toLowerCase() === 'unauthorized') {
-            handleUnauthorized();
-            throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(body?.message || 'Request failed');
-    }
-    return body.data || {};
-}
-
-async function apiFormPost(url, formData) {
-    const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
     });
     const text = await res.text();
     let body = null;
@@ -174,13 +145,11 @@ function switchPage(pageName) {
         dashboard: 'Dashboard',
         grading: 'Grading',
         announcements: 'Announcements',
-        resources: 'Resources',
         profile: 'Profile'
     };
     setText('pageTitle', titleMap[pageName] || 'Dashboard');
 
     if (pageName === 'announcements') renderAnnouncements();
-    if (pageName === 'resources') loadResources();
 }
 
 function openMyProfile() {
@@ -195,14 +164,11 @@ function classParts(name, classId) {
 }
 
 function populateClassSelects() {
-    const classFilter = document.getElementById('classFilterResources');
     const annSingle = document.getElementById('announcementClassSelect');
     const annMulti = document.getElementById('announcementClassMultiSelect');
-    const resSingle = document.getElementById('resourceClassSelect');
-    const resMulti = document.getElementById('resourceClassMultiSelect');
     const gradeSelect = document.getElementById('classSelectForGrading');
 
-    const allSelects = [classFilter, annSingle, annMulti, resSingle, resMulti];
+    const allSelects = [annSingle, annMulti];
     allSelects.forEach((sel) => {
         if (!sel) return;
         const first = sel.id.includes('Multi') ? '' : '<option value="">-- Choose --</option>';
@@ -314,111 +280,6 @@ async function saveAnnouncement() {
     } catch (e) {
         showPageMessage('Failed to post announcement: ' + e.message, true);
         alert('Failed to post announcement: ' + e.message);
-    }
-}
-
-async function loadResources() {
-    const classId = Number(document.getElementById('classFilterResources')?.value || 0);
-    const url = classId > 0 ? `${API.resources}?class_id=${classId}` : API.resources;
-    try {
-        const data = await apiGet(url);
-        state.resources = data.resources || [];
-        renderResources();
-    } catch (e) {
-        showPageMessage('Failed to load resources: ' + e.message, true);
-    }
-}
-
-function renderResources() {
-    const box = document.getElementById('resourcesContainer');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!state.resources.length) {
-        box.innerHTML = '<div class="card"><p>No resources yet.</p></div>';
-        return;
-    }
-
-    state.resources.forEach((r) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <h3>${escapeHtml(r.title || 'Untitled')}</h3>
-            <p>${escapeHtml(r.description || '')}</p>
-            <p><small>Type: ${escapeHtml(r.type || 'resource')}</small></p>
-            <p><small>Class: ${escapeHtml(String(r.class_id || '-'))}</small></p>
-            ${r.file_url ? `<button class="btn btn-secondary" onclick="downloadFile('${escapeJs(r.file_url)}')">Open File</button>` : ''}
-        `;
-        box.appendChild(card);
-    });
-}
-
-function openResourceModal() {
-    const modal = document.getElementById('resourceModal');
-    if (!modal) return;
-    modal.classList.add('show');
-    modal.classList.add('active');
-}
-function closeResourceModal() {
-    const modal = document.getElementById('resourceModal');
-    if (!modal) return;
-    modal.classList.remove('show');
-    modal.classList.remove('active');
-}
-
-function onResourceTargetModeChange() {
-    const mode = document.getElementById('resourceTargetMode')?.value || 'single';
-    const s = document.getElementById('resourceSingleClassGroup');
-    const m = document.getElementById('resourceMultiClassGroup');
-    if (s) s.style.display = mode === 'single' ? '' : 'none';
-    if (m) m.style.display = mode === 'multiple' ? '' : 'none';
-}
-
-function openResourceFilePicker() { document.getElementById('resourceFile')?.click(); }
-function removeResourceFile() { const i = document.getElementById('resourceFile'); if (i) i.value = ''; }
-
-async function saveResource() {
-    const mode = document.getElementById('resourceTargetMode')?.value || 'single';
-    const title = (document.getElementById('resourceTitle')?.value || '').trim();
-    const type = (document.getElementById('resourceType')?.value || 'resource').trim();
-    const description = (document.getElementById('resourceDescription')?.value || '').trim();
-    const dueDate = (document.getElementById('resourceDueDate')?.value || '').trim();
-    const file = document.getElementById('resourceFile')?.files?.[0] || null;
-
-    if (!title) {
-        showPageMessage('Please enter resource title.', true);
-        return;
-    }
-
-    let classIds = [];
-    if (mode === 'single') {
-        const one = Number(document.getElementById('resourceClassSelect')?.value || 0);
-        classIds = one > 0 ? [one] : [0];
-    } else if (mode === 'multiple') {
-        const sel = document.getElementById('resourceClassMultiSelect');
-        classIds = sel ? [...sel.selectedOptions].map((o) => Number(o.value)).filter((v) => v > 0) : [];
-    } else {
-        classIds = state.classes.map((c) => Number(c.class_id)).filter((v) => v > 0);
-    }
-    if (!classIds.length) classIds = [0];
-
-    try {
-        for (const cid of classIds) {
-            const fd = new FormData();
-            fd.append('title', title);
-            fd.append('type', type);
-            fd.append('description', description);
-            fd.append('due_date', dueDate);
-            fd.append('class_id', String(cid));
-            if (file) fd.append('resource_file', file);
-            await apiFormPost(API.uploadResource, fd);
-        }
-        showPageMessage('Resource uploaded.', false);
-        alert('Resource uploaded successfully.');
-        closeResourceModal();
-        await loadResources();
-    } catch (e) {
-        showPageMessage('Failed to upload resource: ' + e.message, true);
-        alert('Failed to upload resource: ' + e.message);
     }
 }
 
@@ -589,11 +450,6 @@ function showPageMessage(msg, isError) {
     el.style.color = isError ? '#b91c1c' : '#166534';
 }
 
-function downloadFile(filename) {
-    if (!filename) return;
-    window.open(filename, '_blank', 'noopener');
-}
-
 async function logout() {
     try {
         await fetch(API.logout, { method: 'POST', credentials: 'include' });
@@ -623,10 +479,6 @@ function escapeHtml(v) {
         .replaceAll("'", '&#039;');
 }
 
-function escapeJs(v) {
-    return String(v ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'");
-}
-
 // Keep these available for inline onclick handlers in HTML.
 Object.assign(window, {
     openMyProfile,
@@ -636,18 +488,11 @@ Object.assign(window, {
     openAnnouncementFilePicker,
     removeAnnouncementFile,
     saveAnnouncement,
-    openResourceModal,
-    closeResourceModal,
-    onResourceTargetModeChange,
-    openResourceFilePicker,
-    removeResourceFile,
-    saveResource,
     onGradingClassChange,
     onGradingSectionChange,
     onGradingSubjectChange,
     onGradingTermChange,
     loadSimpleStudentsForGrading,
     toggleSelectAllSimpleStudents,
-    submitSimpleGrades,
-    downloadFile
+    submitSimpleGrades
 });

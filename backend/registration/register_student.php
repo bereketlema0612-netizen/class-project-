@@ -1,0 +1,155 @@
+<?php
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
+
+session_start();
+if (!isset($_SESSION['username']) || !in_array(($_SESSION['role'] ?? ''), ['admin', 'director'], true)) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'POST only', 'data' => null]);
+    exit;
+}
+
+$conn->query("CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('student','teacher','admin','director') NOT NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    last_login DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    fname VARCHAR(50) NOT NULL,
+    mname VARCHAR(50) NULL,
+    lname VARCHAR(50) NOT NULL,
+    date_of_birth DATE NULL,
+    age INT NULL,
+    sex VARCHAR(20) NULL,
+    grade_level VARCHAR(20) NULL,
+    stream VARCHAR(20) NULL,
+    address TEXT NULL,
+    parent_name VARCHAR(120) NULL,
+    parent_phone VARCHAR(50) NULL
+)");
+
+$extraColumns = [
+    "mname VARCHAR(50) NULL",
+    "date_of_birth DATE NULL",
+    "age INT NULL",
+    "sex VARCHAR(20) NULL",
+    "grade_level VARCHAR(20) NULL",
+    "stream VARCHAR(20) NULL",
+    "address TEXT NULL",
+    "parent_name VARCHAR(120) NULL",
+    "parent_phone VARCHAR(50) NULL"
+];
+foreach ($extraColumns as $colDef) {
+    $colName = explode(' ', $colDef)[0];
+    $check = $conn->query("SHOW COLUMNS FROM students LIKE '" . $conn->real_escape_string($colName) . "'");
+    if ($check && $check->num_rows === 0) {
+        $conn->query("ALTER TABLE students ADD COLUMN $colDef");
+    }
+}
+
+$payload = [];
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+if (stripos($contentType, 'application/json') !== false) {
+    $payload = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($payload)) $payload = [];
+} else {
+    $payload = $_POST;
+}
+
+$fname = trim((string)($payload['fname'] ?? ''));
+$mname = trim((string)($payload['mname'] ?? ''));
+$lname = trim((string)($payload['lname'] ?? ''));
+$email = trim((string)($payload['email'] ?? ''));
+$dob = trim((string)($payload['dateOfBirth'] ?? $payload['date_of_birth'] ?? ''));
+$age = (int)($payload['age'] ?? 0);
+$sex = trim((string)($payload['sex'] ?? ''));
+$gradeLevelRaw = trim((string)($payload['gradeLevel'] ?? $payload['grade_level'] ?? ''));
+$stream = trim((string)($payload['stream'] ?? ''));
+$address = trim((string)($payload['address'] ?? ''));
+$parentName = trim((string)($payload['parentName'] ?? $payload['parent_name'] ?? ''));
+$parentPhone = trim((string)($payload['parentPhone'] ?? $payload['parent_phone'] ?? ''));
+
+if ($fname === '' || $lname === '' || $email === '') {
+    echo json_encode(['success' => false, 'message' => 'fname, lname and email are required', 'data' => null]);
+    exit;
+}
+
+$gradeLevel = '';
+if ($gradeLevelRaw !== '') {
+    if (preg_match('/(\d+)/', $gradeLevelRaw, $m)) $gradeLevel = $m[1];
+    else $gradeLevel = $gradeLevelRaw;
+}
+
+function random_alnum($len = 5) {
+    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $out = '';
+    for ($i = 0; $i < $len; $i++) {
+        $out .= $chars[random_int(0, strlen($chars) - 1)];
+    }
+    return $out;
+}
+
+$username = '';
+for ($i = 1; $i <= 100; $i++) {
+    $candidate = 'std' . str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+    $st = $conn->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+    if ($st) {
+        $st->bind_param('s', $candidate);
+        $st->execute();
+        $exists = $st->get_result()->fetch_assoc();
+        $st->close();
+        if (!$exists) {
+            $username = $candidate;
+            break;
+        }
+    }
+}
+
+if ($username === '') {
+    echo json_encode(['success' => false, 'message' => 'Could not generate username', 'data' => null]);
+    exit;
+}
+
+$passwordPlain = random_alnum(5);
+$insertUser = $conn->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, 'student', 'active')");
+if (!$insertUser) {
+    echo json_encode(['success' => false, 'message' => 'DB error (users)', 'data' => null]);
+    exit;
+}
+$insertUser->bind_param('sss', $username, $email, $passwordPlain);
+if (!$insertUser->execute()) {
+    echo json_encode(['success' => false, 'message' => 'Email/username already exists', 'data' => null]);
+    exit;
+}
+
+$insertStudent = $conn->prepare("INSERT INTO students (username, fname, mname, lname, date_of_birth, age, sex, grade_level, stream, address, parent_name, parent_phone) VALUES (?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?)");
+if (!$insertStudent) {
+    echo json_encode(['success' => false, 'message' => 'DB error (students)', 'data' => null]);
+    exit;
+}
+$insertStudent->bind_param('sssssissssss', $username, $fname, $mname, $lname, $dob, $age, $sex, $gradeLevel, $stream, $address, $parentName, $parentPhone);
+$insertStudent->execute();
+
+echo json_encode([
+    'success' => true,
+    'message' => 'Student registered',
+    'data' => [
+        'username' => $username,
+        'password' => $passwordPlain,
+        'email' => $email,
+        'full_name' => trim($fname . ' ' . $lname)
+    ]
+]);
+?>

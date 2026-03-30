@@ -34,10 +34,6 @@
                     <i class="fas fa-bullhorn"></i>
                     <span>Announcements</span>
                 </a>
-                <a href="#resources" class="nav-item" data-page="resources">
-                    <i class="fas fa-book"></i>
-                    <span>Resources</span>
-                </a>
                 <a href="#profile" class="nav-item" data-page="profile">
                     <i class="fas fa-user-circle"></i>
                     <span>Profile</span>
@@ -209,26 +205,6 @@
                     </div>
                 </div>
 
-                <!-- RESOURCES PAGE -->
-                <div id="resources" class="page">
-                    <div class="page-header">
-                        <h2>Course Resources</h2>
-                        <button class="btn btn-primary" onclick="openResourceModal()">
-                            <i class="fas fa-plus"></i> Upload Resource
-                        </button>
-                    </div>
-
-                    <div class="filter-section">
-                        <select id="classFilterResources" class="filter-select">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-
-                    <div id="resourcesContainer" class="resources-grid">
-                        <!-- Will be populated by JS -->
-                    </div>
-                </div>
-
                 <!-- PROFILE PAGE -->
                 <div id="profile" class="page">
                     <div class="page-header">
@@ -337,79 +313,7 @@
         </div>
     </div>
 
-    <!-- Resource Modal -->
-    <div id="resourceModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeResourceModal()">&times;</span>
-            <h2>Upload Resource</h2>
-            <div class="form-group">
-                <label>Target Mode:</label>
-                <select id="resourceTargetMode" class="form-control" onchange="onResourceTargetModeChange()">
-                    <option value="single">Single assigned class</option>
-                    <option value="multiple">Multiple assigned classes</option>
-                    <option value="all_assigned">All assigned classes</option>
-                </select>
-            </div>
-            <div class="form-group" id="resourceSingleClassGroup">
-                <label>Select Class:</label>
-                <select id="resourceClassSelect" class="form-control">
-                    <option value="">-- Select a class --</option>
-                </select>
-            </div>
-            <div class="form-group" id="resourceMultiClassGroup" style="display:none;">
-                <label>Select Classes (multiple):</label>
-                <select id="resourceClassMultiSelect" class="form-control" multiple size="6"></select>
-            </div>
-            <div class="form-group">
-                <label>Resource Title:</label>
-                <input type="text" id="resourceTitle" class="form-control" placeholder="Resource title">
-            </div>
-            <div class="form-group">
-                <label>Type:</label>
-                <select id="resourceType" class="form-control">
-                    <option value="resource">Resource</option>
-                    <option value="assignment">Assignment</option>
-                    <option value="project">Project</option>
-                    <option value="worksheet">Worksheet</option>
-                    <option value="book">Book</option>
-                    <option value="pdf">PDF</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Deadline (optional):</label>
-                <input type="date" id="resourceDueDate" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Description / Instruction:</label>
-                <textarea id="resourceDescription" class="form-control" rows="4" placeholder="Assignment instructions, project requirements, notes..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Upload File:</label>
-                <div class="file-upload-area" id="resourceUploadArea">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag file here or click to browse</p>
-                    <input type="file" id="resourceFile" class="file-input" />
-                </div>
-                <div style="margin-top: 8px;">
-                    <button type="button" class="btn btn-secondary" onclick="openResourceFilePicker()">
-                        <i class="fas fa-folder-open"></i> Browse File
-                    </button>
-                </div>
-                <div id="resourceFilePreview" class="file-preview-item" style="display: none; margin-top: 10px;">
-                    <i class="fas fa-file"></i>
-                    <span id="resourceFileName">file-name.pdf</span>
-                    <button type="button" class="btn-remove-file" onclick="removeResourceFile()">Remove</button>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeResourceModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveResource()">Upload Resource</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="teacher-script.js?v=20260330-05"></script>
+    <script src="teacher-script.js?v=20260330-06"></script>
 </body>
 </html>
 
