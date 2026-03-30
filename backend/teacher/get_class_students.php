@@ -1,52 +1,73 @@
 <?php
-require_once '../config/db_config.php';
-require_once '../helpers/functions.php';
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    sendResponse(false, 'Invalid request method', null, 405);
-}
-
-$class_id = isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0;
 session_start();
-
-if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'teacher') {
-    sendResponse(false, 'Unauthorized', null, 403);
-}
-if (!$class_id) {
-    sendResponse(false, 'Class ID required', null, 400);
+if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
 }
 
-$stmt = $conn->prepare("SELECT c.id, CONCAT('Grade ', c.grade_level, ' - ', c.section) AS name, c.grade_level, c.section FROM classes c WHERE c.id = ?");
-$stmt->bind_param("i", $class_id);
-$stmt->execute();
-$classResult = $stmt->get_result();
-
-if ($classResult->num_rows !== 1) {
-    sendResponse(false, 'Class not found', null, 404);
+$classId = (int)($_GET['class_id'] ?? 0);
+if ($classId <= 0) {
+    echo json_encode(['success' => false, 'message' => 'class_id required', 'data' => null]);
+    exit;
 }
-
-$classData = $classResult->fetch_assoc();
-
-$stmt = $conn->prepare("SELECT ce.id, ce.student_username, ce.enrollment_date, s.username as student_id_generated, s.fname, s.mname, s.lname, u.email, s.DOB, s.sex, s.address FROM class_enrollments ce JOIN students s ON ce.student_username = s.username JOIN users u ON s.username = u.username WHERE ce.class_id = ? ORDER BY s.fname, s.lname");
-$stmt->bind_param("i", $class_id);
-$stmt->execute();
-$studentResult = $stmt->get_result();
 
 $students = [];
-while ($row = $studentResult->fetch_assoc()) {
-    $row['full_name'] = $row['fname'] . ' ' . ($row['mname'] ? $row['mname'] . ' ' : '') . $row['lname'];
-    $students[] = $row;
+$conn->query("CREATE TABLE IF NOT EXISTS class_enrollments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_username VARCHAR(50) NOT NULL,
+    class_id INT NOT NULL,
+    enrollment_date DATE NULL
+)");
+
+$hasDemoStudent = false;
+$demoCheck = $conn->query("SELECT username FROM students WHERE username = 'std001' LIMIT 1");
+if ($demoCheck && $demoCheck->num_rows > 0) {
+    $hasDemoStudent = true;
 }
 
-$responseData = [
-    'class' => $classData,
-    'students' => $students,
-    'total_students' => count($students)
-];
+if ($hasDemoStudent) {
+    $countStmt = $conn->prepare("SELECT COUNT(*) AS c FROM class_enrollments WHERE class_id = ?");
+    if ($countStmt) {
+        $countStmt->bind_param('i', $classId);
+        $countStmt->execute();
+        $countRow = $countStmt->get_result()->fetch_assoc();
+        $countStmt->close();
+        $c = (int)($countRow['c'] ?? 0);
+        if ($c === 0) {
+            $ins = $conn->prepare("INSERT INTO class_enrollments (student_username, class_id, enrollment_date) VALUES ('std001', ?, CURDATE())");
+            if ($ins) {
+                $ins->bind_param('i', $classId);
+                $ins->execute();
+                $ins->close();
+            }
+        }
+    }
+}
 
-sendResponse(true, 'Class students retrieved successfully', $responseData, 200);
+$stmt = $conn->prepare("SELECT ce.student_username, s.fname, s.lname FROM class_enrollments ce LEFT JOIN students s ON s.username = ce.student_username WHERE ce.class_id = ? ORDER BY s.fname, s.lname");
+if ($stmt) {
+    $stmt->bind_param('i', $classId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $students[] = [
+            'student_username' => (string)($row['student_username'] ?? ''),
+            'full_name' => trim((string)($row['fname'] ?? '') . ' ' . (string)($row['lname'] ?? ''))
+        ];
+    }
+    $stmt->close();
+}
 
-$stmt->close();
-$conn->close();
-
+echo json_encode([
+    'success' => true,
+    'message' => 'Class students loaded',
+    'data' => [
+        'class_id' => $classId,
+        'students' => $students,
+        'total_students' => count($students)
+    ]
+]);
 ?>

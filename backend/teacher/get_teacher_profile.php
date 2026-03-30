@@ -1,38 +1,47 @@
 <?php
-require_once '../config/db_config.php';
-require_once '../helpers/functions.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    sendResponse(false, 'Invalid request method', null, 405);
-}
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
 
 session_start();
-if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'teacher') {
-    sendResponse(false, 'Unauthorized', null, 403);
+if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
 }
-$teacherUsername = $_SESSION['username'];
 
-$stmt = $conn->prepare("
-    SELECT u.id as user_id, t.username as employee_id_generated, t.fname, t.mname, t.lname,
-           u.email, u.username, t.department, t.subject, t.DOB, t.age, t.sex,
-           t.address, t.office_room, t.office_phone
-    FROM users u
-    JOIN teachers t ON t.username = u.username
-    WHERE u.username = ?
-");
+$username = (string)$_SESSION['username'];
+
+$sql = "SELECT
+            u.username,
+            u.email,
+            t.fname,
+            t.lname,
+            '' AS department,
+            '' AS office_phone,
+            '' AS office_room,
+            '' AS subject,
+            t.username AS employee_id_generated
+        FROM users u
+        LEFT JOIN teachers t ON t.username = u.username
+        WHERE u.username = ?
+        LIMIT 1";
+$stmt = $conn->prepare($sql);
 if (!$stmt) {
-    sendResponse(false, 'Failed to prepare teacher profile query: ' . $conn->error, null, 500);
+    echo json_encode(['success' => false, 'message' => 'DB error', 'data' => null]);
+    exit;
 }
-$stmt->bind_param("s", $teacherUsername);
+
+$stmt->bind_param('s', $username);
 $stmt->execute();
-$result = $stmt->get_result();
+$row = $stmt->get_result()->fetch_assoc();
 
-if ($result->num_rows !== 1) {
-    sendResponse(false, 'Teacher not found', null, 404);
+if (!$row) {
+    echo json_encode(['success' => false, 'message' => 'Teacher not found', 'data' => null]);
+    exit;
 }
 
-sendResponse(true, 'Teacher profile retrieved successfully', ['teacher' => $result->fetch_assoc()], 200);
-
-$stmt->close();
-$conn->close();
+echo json_encode([
+    'success' => true,
+    'message' => 'Teacher profile loaded',
+    'data' => ['teacher' => $row]
+]);
 ?>

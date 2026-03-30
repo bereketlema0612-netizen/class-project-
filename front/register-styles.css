@@ -933,3 +933,23 @@ input.filter-select {
     }
 }
 
+.profile-icon-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 32px;
+    transition: all 0.2s ease;
+}
+
+.profile-icon-btn:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}

@@ -60,17 +60,9 @@
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
                 <div class="header-right">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Search..." id="searchInput">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <div class="user-profile">
-                        <img id="userAvatar" src="https://via.placeholder.com/40" alt="Teacher Avatar" class="avatar">
-                        <div class="user-info">
-                            <p id="userName" class="user-name">Teacher Name</p>
-                            <p id="userDept" class="user-dept">Department</p>
-                        </div>
-                    </div>
+                    <button class="profile-icon-btn" type="button" title="My Profile" onclick="openMyProfile()">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
                 </div>
             </header>
 
@@ -245,7 +237,9 @@
 
                     <div class="card profile-card">
                         <div class="profile-header">
-                            <img id="profileAvatar" src="https://via.placeholder.com/120" alt="Profile" class="profile-avatar">
+                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
                             <div class="profile-info">
                                 <h3 id="profileName">Teacher Name</h3>
                                 <p id="profileDept">Department</p>
@@ -415,7 +409,7 @@
         </div>
     </div>
 
-    <script src="teacher-script.js?v=20260330-02"></script>
+    <script src="teacher-script.js?v=20260330-05"></script>
 </body>
 </html>
 

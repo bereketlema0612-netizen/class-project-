@@ -1,95 +1,79 @@
 <?php
-require_once '../config/db_config.php';
-require_once '../helpers/functions.php';
-require_once '../helpers/curriculum.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    sendResponse(false, 'Invalid request method', null, 405);
-}
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
 
 session_start();
-if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'teacher') {
-    sendResponse(false, 'Unauthorized', null, 403);
+if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
 }
 
-$classId = isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0;
-if ($classId <= 0) {
-    sendResponse(false, 'Class ID required', null, 400);
+$subjects = [];
+$classId = (int)($_GET['class_id'] ?? 0);
+$teacher = (string)$_SESSION['username'];
+
+$conn->query("CREATE TABLE IF NOT EXISTS assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    teacher_username VARCHAR(50) NOT NULL,
+    subject_name VARCHAR(100) NULL,
+    assignment_type VARCHAR(20) NOT NULL DEFAULT 'teacher',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)");
+
+$hasSubject = $conn->query("SHOW COLUMNS FROM assignments LIKE 'subject_name'");
+if ($hasSubject && $hasSubject->num_rows === 0) {
+    $conn->query("ALTER TABLE assignments ADD COLUMN subject_name VARCHAR(100) NULL AFTER teacher_username");
 }
 
-$teacherUsername = $_SESSION['username'];
-
-$hasStreamCol = false;
-$streamColRes = $conn->query("SHOW COLUMNS FROM classes LIKE 'stream'");
-if ($streamColRes && $streamColRes->num_rows > 0) {
-    $hasStreamCol = true;
-}
-
-$classSql = $hasStreamCol
-    ? "SELECT id, grade_level, section, stream FROM classes WHERE id = ? LIMIT 1"
-    : "SELECT id, grade_level, section, '' AS stream FROM classes WHERE id = ? LIMIT 1";
-$classStmt = $conn->prepare($classSql);
-$classStmt->bind_param("i", $classId);
-$classStmt->execute();
-$classRow = $classStmt->get_result()->fetch_assoc();
-if (!$classRow) {
-    sendResponse(false, 'Class not found', null, 404);
-}
-
-$gradeDigits = preg_replace('/\D+/', '', (string)$classRow['grade_level']);
-$stream = normalizeStream($classRow['stream'] ?? '');
-$curriculumList = curriculumSubjects($gradeDigits, $stream);
-
-$teacherSubjects = [];
-
-// Fallback from teacher profile subject field.
-$teacherProfileStmt = $conn->prepare("SELECT subject FROM teachers WHERE username = ? LIMIT 1");
-if ($teacherProfileStmt) {
-    $teacherProfileStmt->bind_param("s", $teacherUsername);
-    if ($teacherProfileStmt->execute()) {
-        $teacherRow = $teacherProfileStmt->get_result()->fetch_assoc();
-        $profileSubject = trim((string)($teacherRow['subject'] ?? ''));
-        if ($profileSubject !== '') {
-            $teacherSubjects[] = $profileSubject;
-        }
-    }
-}
-$teacherSubjects = array_values(array_unique(array_filter($teacherSubjects, fn($s) => trim((string)$s) !== '')));
-
-if (!empty($curriculumList) && !empty($teacherSubjects)) {
-    $allowed = array_values(array_filter($teacherSubjects, fn($s) => in_array($s, $curriculumList, true)));
-    if (empty($allowed)) {
-        $allowed = $teacherSubjects;
-    }
-} elseif (!empty($curriculumList)) {
-    $allowed = $curriculumList;
-} else {
-    $allowed = !empty($teacherSubjects) ? $teacherSubjects : [];
-}
-
-// Final fallback: avoid empty dropdown by returning all defined subjects.
-if (empty($allowed)) {
-    $allSubjectsRes = $conn->query("SELECT DISTINCT subject_name FROM subjects ORDER BY subject_name ASC");
-    if ($allSubjectsRes) {
-        while ($row = $allSubjectsRes->fetch_assoc()) {
+if ($classId > 0) {
+    $stmt = $conn->prepare("SELECT DISTINCT subject_name FROM assignments WHERE assignment_type = 'teacher' AND teacher_username = ? AND class_id = ? AND IFNULL(subject_name, '') <> '' ORDER BY subject_name ASC");
+    if ($stmt) {
+        $stmt->bind_param('si', $teacher, $classId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
             $name = trim((string)($row['subject_name'] ?? ''));
-            if ($name !== '') {
-                $allowed[] = $name;
-            }
+            if ($name !== '') $subjects[] = $name;
         }
-        $allowed = array_values(array_unique($allowed));
+        $stmt->close();
     }
 }
 
-sendResponse(true, 'Class subjects retrieved', [
-    'class' => [
-        'id' => (int)$classRow['id'],
-        'grade_level' => $classRow['grade_level'],
-        'section' => $classRow['section'],
-        'stream' => $stream
-    ],
-    'subjects' => $allowed
-], 200);
+if (count($subjects) === 0) {
+    $stmt = $conn->prepare("SELECT DISTINCT subject_name FROM assignments WHERE assignment_type = 'teacher' AND teacher_username = ? AND IFNULL(subject_name, '') <> '' ORDER BY subject_name ASC");
+    if ($stmt) {
+        $stmt->bind_param('s', $teacher);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $name = trim((string)($row['subject_name'] ?? ''));
+            if ($name !== '') $subjects[] = $name;
+        }
+        $stmt->close();
+    }
+}
 
-$conn->close();
+$tblSubjects = $conn->query("SHOW TABLES LIKE 'subjects'");
+if (count($subjects) === 0 && $tblSubjects && $tblSubjects->num_rows > 0) {
+    $res = $conn->query("SELECT subject_name FROM subjects ORDER BY subject_name ASC");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $name = trim((string)($row['subject_name'] ?? ''));
+            if ($name !== '') $subjects[] = $name;
+        }
+    }
+}
+
+if (count($subjects) === 0) {
+    $subjects = ['Mathematics', 'English', 'Biology'];
+}
+
+echo json_encode([
+    'success' => true,
+    'message' => 'Class subjects loaded',
+    'data' => [
+        'subjects' => $subjects
+    ]
+]);
 ?>

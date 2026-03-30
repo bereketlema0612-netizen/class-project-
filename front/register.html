@@ -37,7 +37,8 @@
                 <a href="#assign" class="nav-item" data-page="assign">
                     <i class="fas fa-link"></i>
                     <span>Assign Users</span>
-                </a>                <a href="#all-registrations" class="nav-item" data-page="all-registrations">
+                </a>
+                <a href="#all-registrations" class="nav-item" data-page="all-registrations">
                     <i class="fas fa-list"></i>
                     <span>All Registrations</span>
                     <span class="badge" id="registrationBadge">0</span>
@@ -59,17 +60,9 @@
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
                 <div class="header-right">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Search registrations..." id="searchInput">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <div class="user-profile">
-                        <img id="userAvatar" src="https://via.placeholder.com/40" alt="Admin Avatar" class="avatar">
-                        <div class="user-info">
-                            <p id="userName" class="user-name">Registration Admin</p>
-                            <p id="userRole" class="user-role">Admin</p>
-                        </div>
-                    </div>
+                    <button class="profile-icon-btn" type="button" title="My Profile" onclick="openMyProfile()">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
                 </div>
             </header>
 
@@ -338,6 +331,65 @@
                             </div>
                             <div class="form-success-message" data-form-success="teacher" role="status" aria-live="polite"></div>
                         </form>
+                    </div>
+                </div>
+
+                <!-- ASSIGN PAGE -->
+                <div id="assign" class="page">
+                    <div class="page-header">
+                        <h2>Assign Teacher To Class</h2>
+                    </div>
+
+                    <div class="card form-card">
+                        <form onsubmit="handleAssignTeacher(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Teacher</label>
+                                    <select id="assignTeacherUsername" class="form-control" required>
+                                        <option value="">-- Select teacher --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Class</label>
+                                    <select id="assignClassId" class="form-control" required>
+                                        <option value="">-- Select class --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Subject</label>
+                                    <select id="assignSubjectName" class="form-control" required>
+                                        <option value="">-- Select subject --</option>
+                                        <option value="Mathematics">Mathematics</option>
+                                        <option value="English">English</option>
+                                        <option value="Biology">Biology</option>
+                                        <option value="Chemistry">Chemistry</option>
+                                        <option value="Physics">Physics</option>
+                                        <option value="History">History</option>
+                                        <option value="Geography">Geography</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Assign</button>
+                            </div>
+                        </form>
+                        <div id="assignMessage" class="form-success-message" role="status" aria-live="polite"></div>
+                    </div>
+
+                    <div class="card table-card">
+                        <h3>Assigned Teachers</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Teacher</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignedTeachersBody">
+                                <tr><td colspan="3" style="text-align:center;color:#6b7280;">No assignments yet</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -619,7 +671,43 @@
         </main>
     </div>
 
-    <script src="register-script.js?v=20260306-05"></script>
+    <div id="myProfileModal" class="modal" onclick="if(event.target.id==='myProfileModal') closeMyProfileModal()">
+        <div class="modal-content" style="max-width:520px;">
+            <span class="close" onclick="closeMyProfileModal()">&times;</span>
+            <h2>My Profile</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <p id="myProfileName">-</p>
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <p id="myProfileUsername">-</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Role</label>
+                    <p id="myProfileRole">-</p>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <p id="myProfileEmail">-</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full">
+                    <label>Session</label>
+                    <p id="myProfileSession">-</p>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeMyProfileModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="register-script.js?v=20260330-06"></script>
 </body>
 </html>
 

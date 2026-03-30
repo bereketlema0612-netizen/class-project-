@@ -64,15 +64,9 @@
                 <div class="header-title">
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-icon" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-dot"></span>
-                    </button>
-                    <button class="btn btn-icon" title="Messages">
-                        <i class="fas fa-envelope"></i>
-                    </button>
-                </div>
+                <button class="profile-icon-btn" type="button" title="My Profile" onclick="openMyProfile()">
+                    <i class="fas fa-user-circle"></i>
+                </button>
             </header>
             <div id="directorStatusMessage" class="status-message" role="status" aria-live="polite"></div>
 
@@ -532,6 +526,25 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeStatusConfirmModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="confirmStatusChange()">Yes, Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="myProfileModal" class="modal" onclick="if(event.target.id==='myProfileModal') closeMyProfileModal()">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3>My Profile</h3>
+                <button class="close-modal" onclick="closeMyProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Full Name:</strong> <span id="myProfileName">-</span></p>
+                <p><strong>Username:</strong> <span id="myProfileUsername">-</span></p>
+                <p><strong>Role:</strong> <span id="myProfileRole">-</span></p>
+                <p><strong>Email:</strong> <span id="myProfileEmail">-</span></p>
+                <p><strong>Session:</strong> <span id="myProfileSession">-</span></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMyProfileModal()">Close</button>
             </div>
         </div>
     </div>

@@ -1,138 +1,87 @@
 <?php
-require_once '../config/db_config.php';
-require_once '../helpers/functions.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    sendResponse(false, 'Invalid request method', null, 405);
-}
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
 
 session_start();
-if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'teacher') {
-    sendResponse(false, 'Unauthorized', null, 403);
+if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
 }
-$teacherUsername = $_SESSION['username'];
-ensureAssignmentBlockColumn($conn);
 
-function hasColumn(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
-    if (!$res) {
-        return false;
+$username = (string)$_SESSION['username'];
+
+$conn->query("CREATE TABLE IF NOT EXISTS classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    grade_level VARCHAR(20) NULL,
+    section VARCHAR(20) NULL
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    teacher_username VARCHAR(50) NOT NULL,
+    assignment_type VARCHAR(20) NOT NULL DEFAULT 'teacher',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS class_enrollments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_username VARCHAR(50) NOT NULL,
+    class_id INT NOT NULL,
+    enrollment_date DATE NULL
+)");
+
+$totalClasses = 0;
+$totalStudents = 0;
+$assignedClasses = [];
+
+$sql = "SELECT DISTINCT a.class_id, c.name
+        FROM assignments a
+        LEFT JOIN classes c ON c.id = a.class_id
+        WHERE a.teacher_username = ? AND a.assignment_type = 'teacher'
+        ORDER BY a.class_id ASC";
+$st = $conn->prepare($sql);
+if ($st) {
+    $st->bind_param('s', $username);
+    $st->execute();
+    $res = $st->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $cid = (int)($row['class_id'] ?? 0);
+        if ($cid > 0) {
+            $assignedClasses[] = [
+                'class_id' => $cid,
+                'name' => (string)($row['name'] ?? ('Class ' . $cid))
+            ];
+        }
     }
-    return $res->num_rows > 0;
+    $st->close();
 }
 
-function tableExists(mysqli $conn, string $table): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $res = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
-    if (!$res) {
-        return false;
+$totalClasses = count($assignedClasses);
+
+if ($totalClasses > 0) {
+    $classIds = array_map(function ($c) { return (int)$c['class_id']; }, $assignedClasses);
+    $classIds = array_values(array_filter($classIds, function ($v) { return $v > 0; }));
+    if (count($classIds) > 0) {
+        $in = implode(',', $classIds);
+        $resCount = $conn->query("SELECT COUNT(*) AS c FROM class_enrollments WHERE class_id IN ($in)");
+        if ($resCount) {
+            $row = $resCount->fetch_assoc();
+            $totalStudents = (int)($row['c'] ?? 0);
+        }
     }
-    return $res->num_rows > 0;
 }
 
-function mustPrepare(mysqli $conn, string $sql, string $context): mysqli_stmt {
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        sendResponse(false, 'Failed to prepare ' . $context . ': ' . $conn->error, null, 500);
-    }
-    return $stmt;
-}
-
-$stmt = mustPrepare($conn, "SELECT username, email FROM users WHERE username = ? AND role = 'teacher'", 'teacher lookup');
-$stmt->bind_param('s', $teacherUsername);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
-if (!$user) {
-    sendResponse(false, 'Teacher not found', null, 404);
-}
-
-$stmt = mustPrepare($conn, "
-    SELECT t.username as employee_id_generated, t.fname, t.mname, t.lname, u.email,
-           t.department, t.subject, t.DOB, t.age, t.sex, t.address, t.office_room, t.office_phone
-    FROM teachers t
-    JOIN users u ON t.username = u.username
-    WHERE t.username = ?
-", 'teacher profile lookup');
-$stmt->bind_param('s', $teacherUsername);
-$stmt->execute();
-$teacher = $stmt->get_result()->fetch_assoc();
-
-$streamExpr = hasColumn($conn, 'classes', 'stream') ? 'c.stream' : 'NULL AS stream';
-$stmt = mustPrepare($conn, "
-    SELECT
-           c.id AS class_id,
-           ? AS teacher_username,
-           c.grade_level,
-           c.section,
-           {$streamExpr},
-           CONCAT('Grade ', c.grade_level, ' - ', c.section) AS name,
-           '' AS assigned_subjects
-    FROM classes c
-    ORDER BY c.grade_level, c.section
-", 'classes lookup');
-$stmt->bind_param('s', $teacherUsername);
-$stmt->execute();
-$assignmentResult = $stmt->get_result();
-$classes = [];
-while ($row = $assignmentResult->fetch_assoc()) {
-    $classes[] = $row;
-}
-
-$stmt = mustPrepare($conn, "
-    SELECT COUNT(DISTINCT student_username) as total_students
-    FROM class_enrollments
-    WHERE class_id IN (SELECT id FROM classes)
-", 'student statistics');
-$stmt->execute();
-$studentCount = $stmt->get_result()->fetch_assoc()['total_students'] ?? 0;
-
-$gradeCount = 0;
-if (tableExists($conn, 'grades')) {
-    $stmt = mustPrepare($conn, "
-        SELECT COUNT(*) as total_grades
-        FROM grades
-        WHERE class_id IN (SELECT id FROM classes)
-    ", 'grades statistics');
-    $stmt->execute();
-    $gradeCount = $stmt->get_result()->fetch_assoc()['total_grades'] ?? 0;
-}
-
-$stmt = mustPrepare($conn, "
-    SELECT COUNT(*) as total_schedules
-    FROM class_schedules
-    WHERE class_id IN (SELECT id FROM classes)
-", 'schedules statistics');
-$stmt->execute();
-$scheduleCount = $stmt->get_result()->fetch_assoc()['total_schedules'] ?? 0;
-
-$annContentExpr = hasColumn($conn, 'announcements', 'content') ? 'COALESCE(content, message)' : 'message';
-$stmt = mustPrepare($conn, "
-    SELECT id, title, message, {$annContentExpr} as content, priority, audience, created_at
-    FROM announcements
-    WHERE audience IN ('teachers', 'all') AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-    ORDER BY created_at DESC
-    LIMIT 5
-", 'announcements lookup');
-$stmt->execute();
-$announcementResult = $stmt->get_result();
-$announcements = [];
-while ($row = $announcementResult->fetch_assoc()) {
-    $announcements[] = $row;
-}
-
-sendResponse(true, 'Teacher dashboard data retrieved successfully', [
-    'teacher' => $teacher,
-    'statistics' => [
-        'total_classes' => count($classes),
-        'total_students' => (int)$studentCount,
-        'total_grades_entered' => (int)$gradeCount,
-        'total_schedules' => (int)$scheduleCount
-    ],
-    'assigned_classes' => $classes,
-    'recent_announcements' => $announcements
-], 200);
-
-$conn->close();
+echo json_encode([
+    'success' => true,
+    'message' => 'Teacher dashboard loaded',
+    'data' => [
+        'statistics' => [
+            'total_classes' => $totalClasses,
+            'total_students' => $totalStudents
+        ],
+        'assigned_classes' => $assignedClasses
+    ]
+]);
 ?>

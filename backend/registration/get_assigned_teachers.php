@@ -1,90 +1,51 @@
 <?php
-require_once '../config/db_config.php';
-require_once '../helpers/functions.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    sendResponse(false, 'Invalid request method', null, 405);
-}
+header('Content-Type: application/json');
+require_once __DIR__ . '/../config/db_config.php';
 
 session_start();
-if (!isset($_SESSION['username'])) {
-    sendResponse(false, 'Unauthorized', null, 403);
+if (!isset($_SESSION['username']) || !in_array(($_SESSION['role'] ?? ''), ['admin', 'director'], true)) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
+    exit;
 }
 
-$sessionUsername = (string)$_SESSION['username'];
-$sessionRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
-$sessionRole = str_replace(['-', ' '], '_', $sessionRole);
-$isAllowedRole = in_array($sessionRole, ['admin', 'director', 'registration_admin'], true);
-if (!$isAllowedRole) {
-    $isAdminTableUser = false;
-    $tblAdmins = $conn->query("SHOW TABLES LIKE 'admins'");
-    $tblDirectors = $conn->query("SHOW TABLES LIKE 'directors'");
-    if (($tblAdmins && $tblAdmins->num_rows > 0) || ($tblDirectors && $tblDirectors->num_rows > 0)) {
-        $authSqlParts = [];
-        if ($tblAdmins && $tblAdmins->num_rows > 0) {
-            $authSqlParts[] = "SELECT username FROM admins WHERE username = ?";
-        }
-        if ($tblDirectors && $tblDirectors->num_rows > 0) {
-            $authSqlParts[] = "SELECT username FROM directors WHERE username = ?";
-        }
-        $authSql = implode(" UNION ", $authSqlParts) . " LIMIT 1";
-        $authStmt = $conn->prepare($authSql);
-        if ($authStmt) {
-            if (count($authSqlParts) === 2) {
-                $authStmt->bind_param("ss", $sessionUsername, $sessionUsername);
-            } else {
-                $authStmt->bind_param("s", $sessionUsername);
-            }
-            $authStmt->execute();
-            $isAdminTableUser = (bool)$authStmt->get_result()->fetch_assoc();
-        }
-    }
-    if (!$isAdminTableUser) {
-        sendResponse(false, 'Unauthorized', null, 403);
-    }
+$conn->query("CREATE TABLE IF NOT EXISTS assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    teacher_username VARCHAR(50) NOT NULL,
+    subject_name VARCHAR(100) NULL,
+    assignment_type VARCHAR(20) NOT NULL DEFAULT 'teacher',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)");
+
+$hasSubject = $conn->query("SHOW COLUMNS FROM assignments LIKE 'subject_name'");
+if ($hasSubject && $hasSubject->num_rows === 0) {
+    $conn->query("ALTER TABLE assignments ADD COLUMN subject_name VARCHAR(100) NULL AFTER teacher_username");
 }
 
-ensureAssignmentBlockColumn($conn);
-
-$sql = "
-    SELECT
-        a.id AS assignment_id,
-        a.class_id,
-        a.teacher_username,
-        t.fname,
-        t.mname,
-        t.lname,
-        t.department,
-        COALESCE(sub.subject_name, t.subject) AS subject,
-        c.grade_level,
-        c.section,
-        u.status AS teacher_status,
-        a.is_blocked
-    FROM assignments a
-    JOIN classes c ON a.class_id = c.id
-    JOIN teachers t ON a.teacher_username = t.username
-    JOIN users u ON u.username = t.username
-    LEFT JOIN subjects sub ON a.subject_id = sub.id
-    WHERE a.assignment_type = 'teacher'
-    ORDER BY t.fname, t.lname, c.grade_level, c.section
-";
-$result = $conn->query($sql);
-if (!$result) {
-    sendResponse(false, 'Failed to load assigned teachers: ' . $conn->error, null, 500);
-}
+$conn->query("CREATE TABLE IF NOT EXISTS classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    grade_level VARCHAR(20) NULL,
+    section VARCHAR(20) NULL
+)");
 
 $items = [];
-while ($row = $result->fetch_assoc()) {
-    $row['full_name'] = trim($row['fname'] . ' ' . ($row['mname'] ? $row['mname'] . ' ' : '') . $row['lname']);
-    $row['is_blocked'] = (int)($row['is_blocked'] ?? 0);
-    if (preg_match('/^\d+$/', (string)$row['grade_level'])) {
-        $row['grade_label'] = 'Grade ' . $row['grade_level'];
-    } else {
-        $row['grade_label'] = (string)$row['grade_level'];
+$sql = "SELECT a.teacher_username, a.class_id, a.subject_name, c.name AS class_name
+        FROM assignments a
+        LEFT JOIN classes c ON c.id = a.class_id
+        WHERE a.assignment_type = 'teacher' AND IFNULL(a.subject_name, '') <> ''
+        ORDER BY a.id DESC";
+$res = $conn->query($sql);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $items[] = [
+            'teacher_username' => (string)($row['teacher_username'] ?? ''),
+            'class_id' => (int)($row['class_id'] ?? 0),
+            'class_name' => (string)($row['class_name'] ?? ''),
+            'subject_name' => (string)($row['subject_name'] ?? '')
+        ];
     }
-    $items[] = $row;
 }
 
-sendResponse(true, 'Assigned teachers retrieved', ['assigned_teachers' => $items], 200);
-$conn->close();
+echo json_encode(['success' => true, 'message' => 'Assigned teachers loaded', 'data' => ['assigned_teachers' => $items]]);
 ?>
