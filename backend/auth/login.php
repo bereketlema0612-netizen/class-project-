@@ -1,73 +1,60 @@
 <?php
 header('Content-Type: application/json');
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'POST only', 'data' => null]);
-    exit;
-}
-
 require_once __DIR__ . '/../config/db_config.php';
 
-$data = json_decode(file_get_contents('php://input'), true);
-if (!is_array($data)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON', 'data' => null]);
+function send_json($success, $message, $data = null) {
+    echo json_encode(['success' => $success, 'message' => $message, 'data' => $data]);
     exit;
 }
 
-$username = trim((string)($data['username'] ?? ''));
-$password = (string)($data['password'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    send_json(false, 'POST only');
+}
+
+$input = json_decode(file_get_contents('php://input'), true);
+$username = trim((string)($input['username'] ?? ''));
+$password = (string)($input['password'] ?? '');
 
 if ($username === '' || $password === '') {
-    echo json_encode(['success' => false, 'message' => 'Username and password required', 'data' => null]);
-    exit;
+    send_json(false, 'Username and password are required');
 }
 
-$stmt = $conn->prepare('SELECT id, username, email, password, role, status FROM users WHERE username = ? OR email = ? LIMIT 1');
+$stmt = $conn->prepare('SELECT id, username, email, password, role FROM users WHERE username = ? LIMIT 1');
 if (!$stmt) {
-    echo json_encode(['success' => false, 'message' => 'DB error', 'data' => null]);
-    exit;
+    send_json(false, 'Database error');
 }
 
-$stmt->bind_param('ss', $username, $username);
+$stmt->bind_param('s', $username);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-if (!$user || (string)$user['status'] !== 'active') {
-    echo json_encode(['success' => false, 'message' => 'Invalid username or password', 'data' => null]);
-    exit;
+if (!$user) {
+    send_json(false, 'Invalid username or password');
 }
 
-$stored = (string)$user['password'];
-$ok = ($password === $stored) || password_verify($password, $stored);
-if (!$ok) {
-    echo json_encode(['success' => false, 'message' => 'Invalid username or password', 'data' => null]);
-    exit;
+$storedPassword = (string)$user['password'];
+$isValid = ($password === $storedPassword) || password_verify($password, $storedPassword);
+
+if (!$isValid) {
+    send_json(false, 'Invalid username or password');
 }
 
 session_start();
 $_SESSION['user_id'] = (int)$user['id'];
 $_SESSION['username'] = (string)$user['username'];
 $_SESSION['role'] = (string)$user['role'];
-$_SESSION['email'] = (string)$user['email'];
 
-$u = (int)$user['id'];
-$up = $conn->prepare('UPDATE users SET last_login = NOW() WHERE id = ?');
-if ($up) {
-    $up->bind_param('i', $u);
-    $up->execute();
+$uid = (int)$user['id'];
+$update = $conn->prepare('UPDATE users SET last_login = NOW() WHERE id = ?');
+if ($update) {
+    $update->bind_param('i', $uid);
+    $update->execute();
 }
 
-echo json_encode([
-    'success' => true,
-    'message' => 'Login successful',
-    'data' => [
-        'id' => (int)$user['id'],
-        'username' => (string)$user['username'],
-        'email' => (string)$user['email'],
-        'role' => (string)$user['role'],
-        'fullName' => (string)$user['username'],
-        'session_id' => session_id()
-    ]
+send_json(true, 'Login successful', [
+    'id' => (int)$user['id'],
+    'username' => (string)$user['username'],
+    'email' => (string)$user['email'],
+    'role' => (string)$user['role']
 ]);
 ?>
-
