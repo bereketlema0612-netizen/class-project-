@@ -1,5 +1,4 @@
 <?php
-// Simple DB connection (beginner-friendly)
 $host = 'localhost';
 $dbUser = 'root';
 $dbPass = '';
