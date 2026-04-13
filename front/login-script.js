@@ -1,5 +1,3 @@
-// Simple Login Script (Class Project Version)
-
 const APP_BASE = '/bensa_school';
 const FRONT_BASE = APP_BASE + '/front';
 const BACKEND_BASE = APP_BASE + '/backend';
