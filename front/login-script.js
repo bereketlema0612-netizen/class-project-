@@ -1,92 +1,66 @@
-const APP_BASE = '/bensa_school';
-const FRONT_BASE = APP_BASE + '/front';
-const BACKEND_BASE = APP_BASE + '/backend';
-const LOGIN_API_URL = BACKEND_BASE + '/auth/login.php';
+const LOGIN_API_URL = '/bensa_school/backend/auth/login.php';
+let currentMode = 'student';
 
-function switchLoginMode(mode) {
-    const studentToggle = document.getElementById('studentToggle');
-    const staffToggle = document.getElementById('staffToggle');
-    const studentForm = document.getElementById('studentForm');
-    const staffForm = document.getElementById('staffForm');
-
-    if (!studentToggle || !staffToggle || !studentForm || !staffForm) return;
-
-    if (mode === 'student') {
-        studentToggle.classList.add('active');
-        staffToggle.classList.remove('active');
-        studentForm.classList.add('active');
-        staffForm.classList.remove('active');
-    } else {
-        staffToggle.classList.add('active');
-        studentToggle.classList.remove('active');
-        staffForm.classList.add('active');
-        studentForm.classList.remove('active');
-    }
-
-    showError('');
+function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('studentBtn').classList.toggle('active', mode === 'student');
+    document.getElementById('staffBtn').classList.toggle('active', mode === 'staff');
+    document.getElementById('usernameLabel').textContent = mode === 'student' ? 'Student ID / Username' : 'Staff Username';
+    showMessage('');
 }
 
-async function handleLogin(event, mode) {
+async function handleLogin(event) {
     event.preventDefault();
 
-    const username = mode === 'student'
-        ? (document.getElementById('studentUsername')?.value || '').trim()
-        : (document.getElementById('staffUsername')?.value || '').trim();
-
-    const password = mode === 'student'
-        ? (document.getElementById('studentPassword')?.value || '').trim()
-        : (document.getElementById('staffPassword')?.value || '').trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
 
     if (!username || !password) {
-        showError('Please fill all fields');
+        showMessage('Enter username and password.');
         return;
     }
 
     try {
-        const res = await fetch(LOGIN_API_URL, {
+        const response = await fetch(LOGIN_API_URL, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
 
-        const text = await res.text();
-        const body = JSON.parse(text);
-
-        if (!body.success || !body.data) {
-            showError(body.message || 'Login failed');
+        const result = await response.json();
+        if (!result.success || !result.data) {
+            showMessage(result.message || 'Login failed.');
             return;
         }
 
-        localStorage.setItem('currentUser', JSON.stringify(body.data));
+        const role = result.data.role;
+        const isStaff = role === 'teacher' || role === 'director' || role === 'admin';
 
-        const role = String(body.data.role || '');
-        if (role === 'student') window.location.href = FRONT_BASE + '/student-dashboard.html';
-        else if (role === 'teacher') window.location.href = FRONT_BASE + '/teacher-dashboard.html';
-        else if (role === 'director') window.location.href = FRONT_BASE + '/director.html';
-        else if (role === 'admin') window.location.href = FRONT_BASE + '/register.html';
-        else showError('Unknown role');
-    } catch (e) {
-        showError('Login failed. Check server/API and try again.');
+        if (currentMode === 'student' && role !== 'student') {
+            showMessage('This is a staff account. Switch to Staff.');
+            return;
+        }
+
+        if (currentMode === 'staff' && !isStaff) {
+            showMessage('This is a student account. Switch to Student.');
+            return;
+        }
+
+        localStorage.setItem('currentUser', JSON.stringify(result.data));
+
+        if (role === 'student') window.location.href = '/bensa_school/front/student-dashboard.html';
+        else if (role === 'teacher') window.location.href = '/bensa_school/front/teacher-dashboard.html';
+        else if (role === 'director') window.location.href = '/bensa_school/front/director.html';
+        else if (role === 'admin') window.location.href = '/bensa_school/front/register.html';
+        else showMessage('Unknown role.');
+    } catch (error) {
+        showMessage('Server error. Try again.');
     }
 }
 
-function togglePasswordVisibility(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    input.type = input.type === 'password' ? 'text' : 'password';
-}
-
-function showError(msg) {
+function showMessage(text) {
     const box = document.getElementById('loginMessage');
-    if (!box) return;
-    if (!msg) {
-        box.style.display = 'none';
-        box.textContent = '';
-        box.className = 'login-message';
-        return;
-    }
-    box.style.display = 'block';
-    box.textContent = msg;
-    box.className = 'login-message error';
+    box.style.display = text ? 'block' : 'none';
+    box.textContent = text || '';
 }

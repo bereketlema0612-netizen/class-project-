@@ -1,405 +1,121 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-:root {
-    --primary-color: #2563eb;
-    --primary-dark: #1e40af;
-    --success-color: #10b981;
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --border-color: #e5e7eb;
-    --bg-light: #f9fafb;
-    --bg-lighter: #f3f4f6;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-}
+* { box-sizing: border-box; }
 
 body {
+    margin: 0;
+    min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
 }
 
-/* LOGIN CONTAINER */
 .login-container {
-    width: 100;
-    max-width: 600px;
+    width: 100%;
+    max-width: 420px;
     position: relative;
 }
 
-/* LOGIN CARD */
 .login-card {
-    background-color: white;
+    width: 100%;
+    background: #fff;
     border-radius: 50px;
     padding: 50px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
     position: relative;
     z-index: 10;
-    animation: slideUp 0.6s ease-out;
 }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* HEADER */
-.login-header {
+h1 {
+    margin: 0;
     text-align: center;
-    margin-bottom: 35px;
-}
-
-.school-name {
     font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    letter-spacing: -0.5px;
+    color: #1f2937;
 }
 
-.system-title {
+.subtitle {
+    margin: 8px 0 24px;
+    text-align: center;
+    color: #10b981;
     font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: var(--success-color);
+    letter-spacing: 1px;
     text-transform: uppercase;
 }
 
-/* TOGGLE BUTTONS */
-.login-toggle {
+.mode-toggle {
     display: flex;
     gap: 12px;
-    margin-bottom: 30px;
-    background-color: var(--bg-lighter);
+    margin-bottom: 18px;
+    background: #f3f4f6;
     padding: 4px;
     border-radius: 12px;
 }
 
-.login-message {
-    margin-bottom: 18px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.login-message.error {
-    background: #fef2f2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-}
-
-.toggle-btn {
+.mode-btn {
     flex: 1;
-    padding: 12px 16px;
+    padding: 12px;
     border: 2px solid transparent;
     border-radius: 10px;
-    background-color: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
+    background: transparent;
     cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    color: #6b7280;
 }
 
-.toggle-btn:hover {
-    background-color: rgba(255, 255, 255, 0.5);
-    color: var(--text-primary);
+.mode-btn.active {
+    background: #fff;
+    border-color: #2563eb;
+    color: #2563eb;
 }
 
-.toggle-btn.active {
-    background-color: white;
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
-}
-
-.toggle-btn i {
-    font-size: 16px;
-}
-
-/* FORMS */
-.login-form {
-    display: none;
-    animation: fadeIn 0.3s ease-in;
-}
-
-.login-form.active {
+label {
     display: block;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-/* FORM GROUPS */
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
+    margin: 12px 0 8px;
     font-size: 13px;
+    color: #1f2937;
     font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    text-transform: capitalize;
 }
 
-.form-control {
+input {
     width: 100%;
     padding: 12px 14px;
-    border: 2px solid var(--border-color);
+    border: 2px solid #e5e7eb;
     border-radius: 10px;
     font-size: 14px;
-    color: var(--text-primary);
-    background-color: var(--bg-light);
-    font-family: inherit;
-    transition: all 0.3s ease;
+    background: #f9fafb;
 }
 
-.form-control:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    background-color: white;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.form-control::placeholder {
-    color: var(--text-secondary);
-}
-
-/* PASSWORD INPUT */
-.password-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.password-input-wrapper .form-control {
-    width: 100%;
-    padding-right: 40px;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 16px;
-    transition: color 0.3s ease;
-    padding: 8px;
-}
-
-.password-toggle:hover {
-    color: var(--primary-color);
-}
-
-/* FORM OPTIONS */
-.form-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    font-size: 13px;
-}
-
-
-/* LOGIN BUTTON */
 .login-button {
-    width: 700;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    color: white;
+    display: block;
+    width: 170px;
+    margin: 20px auto 0;
+    padding: 12px;
     border: none;
     border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
+    background: #2563eb;
+    color: #fff;
     cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+.login-button:hover { background: #1d4ed8; }
+
+.login-message {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 14px;
 }
 
-.login-button:active {
-    transform: translateY(0);
-}
-
-.login-button i {
-    font-size: 16px;
-    transition: transform 0.3s ease;
-}
-
-.login-button:hover i {
-    transform: translateX(4px);
-}
-
-/* FOOTER */
-.login-footer {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-    text-align: center;
-}
-
-.footer-text {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-    line-height: 1.6;
-}
-
-.footer-text.small {
-    font-size: 11px;
-    opacity: 0.8;
-    margin-bottom: 0;
-}
-
-/* DECORATIONS */
-.decoration {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0.1;
-    z-index: 0;
-}
-
-.decoration-top {
-    width: 300px;
-    height: 300px;
-    background-color: white;
-    top: -100px;
-    right: -100px;
-}
-
-.decoration-bottom {
-    width: 200px;
-    height: 200px;
-    background-color: white;
-    bottom: -80px;
-    left: -80px;
-}
-
-/* RESPONSIVE DESIGN */
 @media (max-width: 480px) {
     .login-card {
-        padding: 30px 20px;
+        border-radius: 18px;
+        padding: 26px 20px;
     }
 
-    .school-name {
+    h1 {
         font-size: 24px;
-    }
-
-    .system-title {
-        font-size: 12px;
-        letter-spacing: 1px;
-    }
-
-    .login-toggle {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .toggle-btn {
-        padding: 10px 14px;
-        font-size: 13px;
-    }
-
-    .form-options {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .form-group label {
-        font-size: 12px;
-    }
-
-    .form-control {
-        padding: 10px 12px;
-        font-size: 13px;
-    }
-
-    .login-button {
-        padding: 12px 18px;
-        font-size: 15px;
-    }
-
-    .decoration-top {
-        width: 200px;
-        height: 200px;
-        top: -80px;
-        right: -80px;
-    }
-
-    .decoration-bottom {
-        width: 150px;
-        height: 150px;
-        bottom: -60px;
-        left: -60px;
-    }
-}
-
-@media (max-width: 360px) {
-    .login-card {
-        padding: 25px 15px;
-        border-radius: 12px;
-    }
-
-    .school-name {
-        font-size: 20px;
-    }
-
-    .system-title {
-        font-size: 11px;
-    }
-
-    .login-header {
-        margin-bottom: 25px;
-    }
-
-    .login-toggle {
-        margin-bottom: 20px;
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .login-button {
-        padding: 11px 16px;
-        font-size: 14px;
     }
 }
