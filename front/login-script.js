@@ -35,7 +35,7 @@ async function handleLogin(event) {
         }
 
         const role = result.data.role;
-        const isStaff = role === 'teacher' || role === 'director' || role === 'admin';
+        const isStaff = role === 'teacher' || role === 'admin';
 
         if (currentMode === 'student' && role !== 'student') {
             showMessage('This is a staff account. Switch to Staff.');
@@ -49,11 +49,17 @@ async function handleLogin(event) {
 
         localStorage.setItem('currentUser', JSON.stringify(result.data));
 
-        if (role === 'student') window.location.href = '/bensa_school/front/student-dashboard.html';
-        else if (role === 'teacher') window.location.href = '/bensa_school/front/teacher-dashboard.html';
-        else if (role === 'director') window.location.href = '/bensa_school/front/director.html';
-        else if (role === 'admin') window.location.href = '/bensa_school/front/register.html';
-        else showMessage('Unknown role.');
+        if (username === 'adm001') {
+            window.location.href = '/bensa_school/front/admin.html';
+        } else if (role === 'student') {
+            window.location.href = '/bensa_school/front/student-dashboard.html';
+        } else if (role === 'teacher') {
+            window.location.href = '/bensa_school/front/teacher-dashboard.html';
+        } else if (role === 'admin') {
+            window.location.href = '/bensa_school/front/admin.html';
+        } else {
+            showMessage('Unknown role.');
+        }
     } catch (error) {
         showMessage('Server error. Try again.');
     }

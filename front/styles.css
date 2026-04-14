@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 
-:root {
+body {
     --primary-color: #6366f1;
     --primary-dark: #4f46e5;
     --primary-light: #818cf8;
@@ -23,9 +23,6 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --blue-header: #2563eb;
-}
-
-body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
@@ -184,55 +181,6 @@ body {
     gap: 20px;
 }
 
-.search-bar {
-    display: flex;
-    align-items: center;
-    background-color: var(--bg-secondary);
-    padding: 8px 15px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
-    width: 250px;
-}
-
-.search-bar input {
-    border: none;
-    background: none;
-    width: 100%;
-    outline: none;
-    color: var(--text-primary);
-}
-
-.search-bar i {
-    color: var(--text-secondary);
-}
-
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.user-info p {
-    margin: 0;
-    font-size: 13px;
-}
-
-.user-name {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.user-class {
-    color: var(--text-secondary);
-}
-
 /* CONTENT */
 .content {
     flex: 1;
@@ -325,75 +273,6 @@ body {
     color: var(--text-primary);
 }
 
-.recent-section, .announcements-section, .upcoming-section {
-    margin-bottom: 20px;
-}
-
-.recent-section h3, .announcements-section h3, .upcoming-section h3 {
-    margin-bottom: 15px;
-    color: var(--text-primary);
-}
-
-.grades-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.grade-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background-color: var(--bg-secondary);
-    border-radius: 6px;
-    border-left: 4px solid var(--primary-color);
-}
-
-.grade-info {
-    flex: 1;
-}
-
-.grade-info .subject {
-    margin: 0;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.grade-info .assessment {
-    margin: 0;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.grade-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 12px;
-    color: white;
-}
-
-.grade-badge.A {
-    background-color: #10b981;
-}
-
-.grade-badge.B {
-    background-color: #3b82f6;
-}
-
-.grade-badge.C {
-    background-color: #f59e0b;
-}
-
-.grade-badge.D {
-    background-color: #ef4444;
-}
-
-.grade-badge.F {
-    background-color: #6b7280;
-}
-
 /* PAGE HEADER */
 .page-header {
     margin-bottom: 25px;
@@ -405,19 +284,7 @@ body {
     margin-bottom: 5px;
 }
 
-.page-header .subtitle {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-
-.student-name-display {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-/* GRADES PAGE */
+/* FILTERS */
 .filter-section {
     display: flex;
     gap: 20px;
@@ -450,6 +317,7 @@ body {
     cursor: pointer;
 }
 
+/* BUTTONS */
 .btn {
     padding: 10px 20px;
     border: none;
@@ -481,18 +349,7 @@ body {
     background-color: var(--bg-tertiary);
 }
 
-/* SUBJECTS CONTAINER */
-.subjects-container {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.grades-table-card {
-    padding: 0;
-    overflow: hidden;
-}
-
+/* TABLES */
 .table-container {
     width: 100%;
     overflow-x: auto;
@@ -517,190 +374,6 @@ body {
 
 .data-table tbody tr:hover {
     background-color: var(--bg-secondary);
-}
-
-.subject-section {
-    background-color: var(--bg-primary);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.subject-section:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-.subject-header {
-    padding: 20px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    user-select: none;
-}
-
-.subject-header h3 {
-    font-size: 18px;
-    color: var(--text-primary);
-    margin: 0;
-    margin-bottom: 5px;
-}
-
-.subject-header .teacher-info {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-.subject-header .help-icon {
-    font-size: 18px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: transform 0.3s ease;
-}
-
-.subject-section.collapsed .help-icon {
-    transform: rotate(-90deg);
-}
-
-.assessments-table {
-    width: 100%;
-    border-collapse: collapse;
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-.assessments-table thead {
-    background-color: var(--blue-header);
-    color: white;
-}
-
-.assessments-table th {
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 14px;
-    position: sticky;
-    top: 0;
-}
-
-.assessments-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 13px;
-}
-
-.assessments-table tbody tr:hover {
-    background-color: var(--bg-secondary);
-}
-
-.assessments-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.total-row {
-    background-color: var(--bg-secondary);
-    font-weight: 600;
-}
-
-.grade-row {
-    background-color: var(--bg-secondary);
-    font-weight: 600;
-}
-
-.score-cell {
-    text-align: right;
-    font-weight: 500;
-}
-
-.pending-score {
-    color: var(--text-secondary);
-}
-
-.submitted-score {
-    color: var(--text-primary);
-}
-
-.grade-letter {
-    font-size: 16px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.grade-letter.A {
-    color: #10b981;
-}
-
-.grade-letter.B {
-    color: #3b82f6;
-}
-
-.grade-letter.C {
-    color: #f59e0b;
-}
-
-.grade-letter.D {
-    color: #ef4444;
-}
-
-.grade-letter.F {
-    color: #6b7280;
-}
-
-.table-content {
-    max-height: 400px;
-    overflow-y: auto;
-    transition: max-height 0.3s ease;
-}
-
-.table-content.hidden {
-    max-height: 0;
-    overflow: hidden;
-}
-
-/* SCHEDULE */
-.schedule-table {
-    overflow-x: auto;
-}
-
-.timetable {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.timetable thead {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.timetable th {
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-}
-
-.timetable td {
-    padding: 12px 15px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.timetable .time {
-    font-weight: 600;
-    background-color: var(--bg-secondary);
-}
-
-.class-cell {
-    background-color: var(--bg-primary);
-    vertical-align: middle;
-}
-
-.class-cell small {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 11px;
-    margin-top: 3px;
 }
 
 /* ANNOUNCEMENTS */
@@ -751,132 +424,13 @@ body {
     margin: 0;
 }
 
-/* ASSIGNMENTS/ASSESSMENTS */
-.assessments-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.assessment-card {
-    border-left: 4px solid var(--primary-color);
-}
-
-.assessment-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.assessment-header h3 {
-    margin: 0;
-    font-size: 16px;
-    color: var(--text-primary);
-}
-
-.assessment-subject {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin: 5px 0 0 0;
-}
-
-.assessment-teacher {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 10px 0 5px 0;
-}
-
-.assessment-date {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 0 0 15px 0;
-}
-
-.assessment-section {
-    margin: 15px 0;
-    padding: 15px;
-    background-color: var(--bg-secondary);
-    border-radius: 6px;
-}
-
-.assessment-section h4 {
-    margin: 0 0 10px 0;
-    color: var(--text-primary);
-    font-size: 14px;
-}
-
-.assessment-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
+/* STATUS BADGES */
 .status-badge {
     padding: 5px 12px;
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
     color: white;
-}
-
-.status-badge.pending {
-    background-color: var(--warning-color);
-}
-
-.status-badge.submitted {
-    background-color: var(--info-color);
-}
-
-.status-badge.graded {
-    background-color: var(--success-color);
-}
-
-/* RESOURCES */
-.resources-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.resource-card {
-    border-left: 4px solid var(--primary-color);
-}
-
-.resource-header {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 10px;
-}
-
-.resource-header i {
-    font-size: 24px;
-    color: var(--primary-color);
-    margin-top: 2px;
-}
-
-.resource-header h3 {
-    margin: 0;
-    font-size: 16px;
-    color: var(--text-primary);
-}
-
-.resource-subject {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin: 5px 0 0 0;
-}
-
-.resource-teacher {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 10px 0 5px 0;
-}
-
-.resource-date {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 0 0 15px 0;
 }
 
 /* PROFILE */
@@ -948,175 +502,7 @@ body {
     margin: 0;
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-    .assignments-download-container {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100vh;
-        transform: translateX(-100%);
-        z-index: 1000;
-    }
-
-    .sidebar.open {
-        transform: translateX(0);
-    }
-
-    .hamburger {
-        display: block;
-    }
-
-    .header-right {
-        gap: 10px;
-    }
-
-    .search-bar {
-        display: none;
-    }
-
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .filter-section {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .filter-group {
-        width: 100%;
-    }
-
-    .filter-group select {
-        width: 100%;
-    }
-
-    .btn-primary {
-        width: 100%;
-    }
-
-    .profile-header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .profile-details {
-        grid-template-columns: 1fr;
-    }
-
-    .assessment-table tbody tr {
-        font-size: 12px;
-    }
-
-    .assessments-table th,
-    .assessments-table td {
-        padding: 10px 8px;
-        font-size: 12px;
-    }
-
-    .timetable {
-        font-size: 12px;
-    }
-
-    .timetable th,
-    .timetable td {
-        padding: 8px;
-    }
-}
-
-/* ASSESSMENTS - DOWNLOAD & SUBMISSION SECTIONS */
-.assignments-download-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 10px;
-    align-items: start;
-}
-
-.download-card {
-    padding: 14px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--bg-secondary);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.download-card:hover {
-    border-color: var(--primary-color);
-    box-shadow: var(--shadow-md);
-}
-
-.download-header {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-}
-
-.download-header i {
-    font-size: 24px;
-    color: var(--primary-color);
-    margin-top: 2px;
-}
-
-.download-header h4 {
-    margin: 0;
-    font-size: 16px;
-    color: var(--text-primary);
-    line-height: 1.3;
-}
-
-.download-header .teacher {
-    margin: 3px 0 0 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-
-.subject-tag {
-    display: inline-block;
-    padding: 3px 8px;
-    background-color: var(--primary-light);
-    color: white;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    margin: 0;
-    width: fit-content;
-}
-
-.due-date {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.download-card .btn {
-    align-self: flex-start;
-    padding: 8px 12px;
-    font-size: 12px;
-}
-
-/* SUBMISSION FORM SECTION */
-.submission-container {
-    display: flex;
-    flex-direction: column;
-}
-
-.submission-form-card {
-    padding: 20px;
-    background-color: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
+/* FORMS */
 .form-group {
     margin-bottom: 20px;
 }
@@ -1156,157 +542,7 @@ textarea.form-control {
     min-height: 80px;
 }
 
-/* FILE UPLOAD AREA */
-.file-upload-area {
-    padding: 30px;
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    text-align: center;
-    background-color: var(--bg-primary);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.file-upload-area:hover {
-    border-color: var(--primary-color);
-    background-color: rgba(99, 102, 241, 0.05);
-}
-
-.file-upload-area i {
-    font-size: 40px;
-    color: var(--primary-color);
-    display: block;
-    margin-bottom: 10px;
-}
-
-.file-upload-area p {
-    margin: 5px 0;
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.file-upload-area .file-info {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 400;
-    margin-top: 10px;
-}
-
-.file-input {
-    display: none;
-}
-
-.file-preview {
-    padding: 15px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--success-color);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-}
-
-.file-preview i {
-    font-size: 24px;
-    color: var(--success-color);
-}
-
-#selectedFileName {
-    margin: 0;
-    color: var(--text-primary);
-    font-weight: 600;
-    flex: 1;
-}
-
-.btn-remove-file {
-    background: none;
-    border: none;
-    color: var(--danger-color);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: underline;
-    transition: color 0.3s ease;
-}
-
-.btn-remove-file:hover {
-    color: #dc2626;
-}
-
-.submission-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.submission-actions .btn {
-    flex: 1;
-}
-
-/* SUBMISSION HISTORY */
-.submission-history-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.history-item {
-    padding: 15px;
-    border-left: 4px solid var(--info-color);
-    background-color: var(--bg-secondary);
-    border-radius: 6px;
-}
-
-.history-item.submitted {
-    border-left-color: var(--success-color);
-}
-
-.history-item.pending {
-    border-left-color: var(--warning-color);
-}
-
-.history-item.graded {
-    border-left-color: var(--primary-color);
-}
-
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-
-.history-header h4 {
-    margin: 0;
-    font-size: 15px;
-    color: var(--text-primary);
-}
-
-.history-date {
-    margin: 5px 0 0 0;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.history-feedback {
-    margin: 10px 0 0 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-style: italic;
-}
-
-.section-title {
-    margin: 0 0 5px 0;
-    font-size: 18px;
-    color: var(--text-primary);
-}
-
-.section-subtitle {
-    margin: 0 0 15px 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
+/* PROFILE ICON BUTTON */
 .profile-icon-btn {
     width: 56px;
     height: 56px;
@@ -1326,4 +562,56 @@ textarea.form-control {
     color: var(--primary-color);
     border-color: var(--primary-color);
     transform: translateY(-1px);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        z-index: 1000;
+    }
+
+    .hamburger {
+        display: block;
+    }
+
+    .header-right {
+        gap: 10px;
+    }
+
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-group select {
+        width: 100%;
+    }
+
+    .btn-primary {
+        width: 100%;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-details {
+        grid-template-columns: 1fr;
+    }
 }

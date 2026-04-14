@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Portal - Dashboard</title>
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="teacher-styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <i class="fas fa-chalkboard-user"></i>
+                    <i class="fas fa-chalkboard-teacher"></i>
                     <span>TeacherHub</span>
                 </div>
-                <button class="hamburger" id="hamburgerBtn">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
 
             <nav class="sidebar-nav">
@@ -27,7 +24,7 @@
                     <span>Dashboard</span>
                 </a>
                 <a href="#grading" class="nav-item" data-page="grading">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-clipboard-list"></i>
                     <span>Grading</span>
                 </a>
                 <a href="#announcements" class="nav-item" data-page="announcements">
@@ -35,7 +32,7 @@
                     <span>Announcements</span>
                 </a>
                 <a href="#profile" class="nav-item" data-page="profile">
-                    <i class="fas fa-user-circle"></i>
+                    <i class="fas fa-user"></i>
                     <span>Profile</span>
                 </a>
             </nav>
@@ -48,29 +45,25 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
             <header class="header">
                 <div class="header-left">
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
                 <div class="header-right">
-                    <button class="profile-icon-btn" type="button" title="My Profile" onclick="openMyProfile()">
+                    <button id="openProfileBtn" class="profile-icon-btn" type="button" title="My Profile">
                         <i class="fas fa-user-circle"></i>
                     </button>
                 </div>
             </header>
 
-            <!-- Content Area -->
             <div class="content">
-                <div id="teacherPageMessage" class="teacher-page-message" style="display: none;"></div>
+                <div id="teacherPageMessage" class="message" style="display:none;"></div>
 
-                <!-- DASHBOARD PAGE -->
-                <div id="dashboard" class="page active">
+                <section id="dashboard" class="page active">
                     <div class="dashboard-grid">
                         <div class="card stat-card">
-                            <div class="stat-icon classes">
+                            <div class="stat-icon assignments">
                                 <i class="fas fa-chalkboard"></i>
                             </div>
                             <div class="stat-content">
@@ -79,18 +72,17 @@
                             </div>
                         </div>
                         <div class="card stat-card">
-                            <div class="stat-icon grading">
-                                <i class="fas fa-tasks"></i>
+                            <div class="stat-icon notifications">
+                                <i class="fas fa-clipboard-check"></i>
                             </div>
                             <div class="stat-content">
                                 <p class="stat-label">Pending Grading</p>
                                 <p class="stat-value" id="pendingGrading">0</p>
                             </div>
                         </div>
-
                         <div class="card stat-card">
-                            <div class="stat-icon students">
-                                <i class="fas fa-users"></i>
+                            <div class="stat-icon gpa">
+                                <i class="fas fa-user-graduate"></i>
                             </div>
                             <div class="stat-content">
                                 <p class="stat-label">Total Students</p>
@@ -98,223 +90,170 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="dashboard-grid two-col">
-
-                        <div class="card">
-                            <h3>Grading Status</h3>
-                            <div id="gradingStatusContainer" class="status-list">
-                                <!-- Will be populated by JS -->
-                            </div>
-                        </div>
+                    <div class="card">
+                        <h3>Grading Status</h3>
+                        <div id="gradingStatusContainer"></div>
                     </div>
-                </div>
+                </section>
 
-                <!-- GRADING PAGE -->
-                <div id="grading" class="page">
+                <section id="grading" class="page">
                     <div class="page-header">
                         <h2>Student Grades</h2>
                     </div>
-
-                    <div class="card grading-card">
-                        <div class="setup-header">
-                            <h3>Enter Student Grades</h3>
-                            <p class="subtitle">Select grade, section, and subject, then load students.</p>
-                        </div>
-
-                        <div class="grading-section">
-                            <div class="class-selection-section">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Choose Grade:</label>
-                                        <select id="classSelectForGrading" class="form-control" onchange="onGradingClassChange()">
-                                            <option value="">-- Choose a grade --</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Choose Section:</label>
-                                        <select id="sectionSelectForGrading" class="form-control" onchange="onGradingSectionChange()">
-                                            <option value="">-- Choose grade first --</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Choose Subject:</label>
-                                        <select id="gradingSubjectSelect" class="form-control" onchange="onGradingSubjectChange()">
-                                            <option value="">-- Choose grade and section first --</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Choose Term / Semester:</label>
-                                        <select id="gradingTermSelect" class="form-control" onchange="onGradingTermChange()">
-                                            <option value="Term1">First Semester</option>
-                                            <option value="Term2">Second Semester</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="grading-actions" style="margin-top: 10px;">
-                                    <button type="button" class="btn btn-primary" onclick="loadSimpleStudentsForGrading()">
-                                        <i class="fas fa-list"></i> Load Students
-                                    </button>
-                                </div>
-                                <div id="gradingScoresMessage" class="teacher-inline-message" style="display: none; margin-top: 10px;"></div>
+                    <div class="card">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="classSelectForGrading">Grade</label>
+                                <select id="classSelectForGrading">
+                                    <option value="">-- Choose --</option>
+                                </select>
                             </div>
-
-                            <div class="grading-table-section" id="gradingTableSection" style="display: none;">
-                                <h4>Grade Table</h4>
-                                <p class="subtitle" style="margin-bottom: 15px;">Assignment is out of 10, Mid Exam out of 30, Final Exam out of 60. Select students you want to submit.</p>
-                                <div class="table-container">
-                                    <table class="grading-table" id="gradingTable">
-                                        <thead>
-                                            <tr>
-                                                <th><input type="checkbox" id="selectAllStudentsForGrade" onclick="toggleSelectAllSimpleStudents(this)"></th>
-                                                <th>Student ID</th>
-                                                <th>Student Name</th>
-                                                <th>Grade</th>
-                                                <th>Assignment (/10)</th>
-                                                <th>Mid Exam (/30)</th>
-                                                <th>Final Exam (/60)</th>
-                                                <th>Total</th>
-                                                <th>Grade Letter</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="gradingTableBody"></tbody>
-                                    </table>
-                                </div>
-                                <div class="grading-actions">
-                                    <button class="btn btn-primary" onclick="submitSimpleGrades()">
-                                        <i class="fas fa-save"></i> Submit Selected Grades
-                                    </button>
-                                    <div id="gradingBulkMessage" class="teacher-inline-message" style="display: none; margin-top: 8px;"></div>
-                                </div>
+                            <div class="form-group">
+                                <label for="sectionSelectForGrading">Section</label>
+                                <select id="sectionSelectForGrading">
+                                    <option value="">-- Choose --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="gradingSubjectSelect">Subject</label>
+                                <select id="gradingSubjectSelect">
+                                    <option value="">-- Choose --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="gradingTermSelect">Term</label>
+                                <select id="gradingTermSelect">
+                                    <option value="Term1">Term1</option>
+                                    <option value="Term2">Term2</option>
+                                </select>
                             </div>
                         </div>
+                        <button id="loadStudentsBtn" class="btn btn-primary" type="button">Load Students</button>
+                        <div id="gradingScoresMessage" class="message" style="display:none;"></div>
                     </div>
-                </div>
 
-                <!-- ANNOUNCEMENTS PAGE -->
-                <div id="announcements" class="page">
+                    <div id="gradingTableSection" class="card" style="display:none;">
+                        <h3>Grade Table</h3>
+                        <div class="table-container">
+                            <table id="gradingTable" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAllStudentsForGrade"></th>
+                                        <th>Student Username</th>
+                                        <th>Name</th>
+                                        <th>Grade</th>
+                                        <th>Assignment /10</th>
+                                        <th>Mid /30</th>
+                                        <th>Final /60</th>
+                                        <th>Total</th>
+                                        <th>Letter</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gradingTableBody"></tbody>
+                            </table>
+                        </div>
+                        <button id="submitGradesBtn" class="btn btn-primary" type="button">Submit Selected Grades</button>
+                        <div id="gradingBulkMessage" class="message" style="display:none;"></div>
+                    </div>
+                </section>
+
+                <section id="announcements" class="page">
                     <div class="page-header">
                         <h2>Announcements</h2>
-                        <button class="btn btn-primary" onclick="openAnnouncementModal()">
-                            <i class="fas fa-plus"></i> New Announcement
-                        </button>
                     </div>
+                    <div id="announcementsContainer" class="announcements-container"></div>
+                </section>
 
-                    <div id="announcementsContainer" class="announcements-list">
-                        <!-- Will be populated by JS -->
-                    </div>
-                </div>
-
-                <!-- PROFILE PAGE -->
-                <div id="profile" class="page">
+                <section id="profile" class="page">
                     <div class="page-header">
                         <h2>Teacher Profile</h2>
                     </div>
-
                     <div class="card profile-card">
                         <div class="profile-header">
                             <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
                                 <i class="fas fa-user-circle"></i>
                             </div>
                             <div class="profile-info">
-                                <h3 id="profileName">Teacher Name</h3>
-                                <p id="profileDept">Department</p>
+                                <h3 id="profileName">-</h3>
+                                <p id="profileDept">-</p>
+                                <p id="profileEmpID">-</p>
                             </div>
                         </div>
 
                         <div class="profile-details">
                             <div class="detail-row">
-                                <label>Employee ID:</label>
-                                <p id="profileEmpID">EMP123</p>
-                            </div>
-                            <div class="detail-row">
                                 <label>Email:</label>
-                                <p id="profileEmail">teacher@school.com</p>
+                                <p id="profileEmail">-</p>
                             </div>
                             <div class="detail-row">
                                 <label>Phone:</label>
-                                <p id="profilePhone">+1 (555) 123-4567</p>
+                                <p id="profilePhone">-</p>
                             </div>
                             <div class="detail-row">
                                 <label>Office:</label>
-                                <p id="profileOffice">Room 301</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Office Hours:</label>
-                                <p id="profileOfficeHours">Mon-Fri, 3:00 PM - 4:00 PM</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Experience:</label>
-                                <p id="profileExperience">10+ Years</p>
+                                <p id="profileOffice">-</p>
                             </div>
                         </div>
                     </div>
-                </div>
-
+                </section>
             </div>
         </main>
     </div>
 
-    <!-- MODALS -->
+    <div id="announcementModal" class="modal" style="display:none;">
+        <div class="modal-box">
+            <h3>New Announcement</h3>
 
-    <!-- Announcement Modal -->
-    <div id="announcementModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeAnnouncementModal()">&times;</span>
-            <h2>New Announcement</h2>
             <div class="form-group">
-                <label>Target Mode:</label>
-                <select id="announcementTargetMode" class="form-control" onchange="onAnnouncementTargetModeChange()">
-                    <option value="single">Single assigned class</option>
-                    <option value="multiple">Multiple assigned classes</option>
-                    <option value="all_assigned">All assigned classes</option>
+                <label for="announcementTargetMode">Target Mode</label>
+                <select id="announcementTargetMode">
+                    <option value="single">Single Class</option>
+                    <option value="multiple">Multiple Classes</option>
+                    <option value="all_assigned">All Classes</option>
                 </select>
             </div>
-            <div class="form-group" id="announcementSingleClassGroup">
-                <label>Select Class:</label>
-                <select id="announcementClassSelect" class="form-control">
-                    <option value="">-- Choose a class --</option>
+
+            <div id="announcementSingleClassGroup" class="form-group">
+                <label for="announcementClassSelect">Class</label>
+                <select id="announcementClassSelect">
+                    <option value="">-- Choose --</option>
                 </select>
             </div>
-            <div class="form-group" id="announcementMultiClassGroup" style="display:none;">
-                <label>Select Classes (multiple):</label>
-                <select id="announcementClassMultiSelect" class="form-control" multiple size="6"></select>
+
+            <div id="announcementMultiClassGroup" class="form-group" style="display:none;">
+                <label for="announcementClassMultiSelect">Classes</label>
+                <select id="announcementClassMultiSelect" multiple size="5"></select>
             </div>
+
             <div class="form-group">
-                <label>Title:</label>
-                <input type="text" id="announcementTitle" class="form-control" placeholder="Announcement title">
+                <label for="announcementTitle">Title</label>
+                <input type="text" id="announcementTitle">
             </div>
+
             <div class="form-group">
-                <label>Content:</label>
-                <textarea id="announcementContent" class="form-control" rows="5" placeholder="Announcement content"></textarea>
+                <label for="announcementContent">Message</label>
+                <textarea id="announcementContent" rows="4"></textarea>
             </div>
+
             <div class="form-group">
-                <label>Attach File (Optional):</label>
-                <div class="file-upload-area" id="announcementFileUploadArea" style="margin-top: 10px;">
-                    <i class="fas fa-paperclip"></i>
-                    <p>Drag file here or click to browse</p>
-                    <input type="file" id="announcementFile" class="file-input" />
-                </div>
-                <div style="margin-top: 8px;">
-                    <button type="button" class="btn btn-secondary" onclick="openAnnouncementFilePicker()">
-                        <i class="fas fa-folder-open"></i> Browse File
-                    </button>
-                </div>
-                <div id="announcementFilePreview" class="file-preview-item" style="display: none; margin-top: 10px;">
-                    <i class="fas fa-file"></i>
-                    <span id="announcementFileName">file-name.pdf</span>
-                    <button type="button" class="btn-remove-file" onclick="removeAnnouncementFile()">Remove</button>
+                <label for="announcementFile">Attach File (optional)</label>
+                <input type="file" id="announcementFile">
+                <div id="announcementFilePreview" style="display:none; margin-top:6px;">
+                    <span id="announcementFileName"></span>
+                    <button id="removeAnnouncementFileBtn" type="button" class="btn">Remove</button>
                 </div>
             </div>
+
+            <div id="announcementInlineMessage" class="message" style="display:none;"></div>
+
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveAnnouncement()">Post Announcement</button>
+                <button id="closeAnnouncementModalBtn" class="btn" type="button">Cancel</button>
+                <button id="postAnnouncementBtn" class="btn btn-primary" type="button">Post</button>
             </div>
-            <div id="announcementInlineMessage" class="teacher-inline-message" style="display: none; margin-top: 10px;"></div>
         </div>
     </div>
 
-    <script src="teacher-script.js?v=20260330-09"></script>
+    <script src="teacher-script.js?v=20260414-2"></script>
 </body>
 </html>
 
