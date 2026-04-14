@@ -1,17 +1,6 @@
 <?php
-header('Content-Type: application/json');
-require_once __DIR__ . '/../config/db_config.php';
-
-session_start();
-if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'POST only', 'data' => null]);
-    exit;
-}
+require_once __DIR__ . '/common.php';
+$teacher = require_teacher(true);
 
 $conn->query("CREATE TABLE IF NOT EXISTS grades (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -26,64 +15,23 @@ $conn->query("CREATE TABLE IF NOT EXISTS grades (
     UNIQUE KEY uniq_grade (student_username, class_id, term, subject)
 )");
 
-$data = json_decode(file_get_contents('php://input'), true);
-if (!is_array($data)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON', 'data' => null]);
-    exit;
-}
-
-$studentInput = trim((string)($data['student_id'] ?? $data['student_username'] ?? ''));
+$data = read_json_body();
+$student = trim((string)($data['student_username'] ?? $data['student_id'] ?? ''));
 $classId = (int)($data['class_id'] ?? 0);
 $term = trim((string)($data['term'] ?? 'Term1'));
 $subject = trim((string)($data['subject'] ?? 'General'));
-$marks = (float)($data['marks'] ?? 0);
 
-$hasBreakdown =
-    array_key_exists('assignment_marks', $data) ||
-    array_key_exists('mid_marks', $data) ||
-    array_key_exists('final_marks', $data);
+$ass = (float)($data['assignment_marks'] ?? 0);
+$mid = (float)($data['mid_marks'] ?? 0);
+$fin = (float)($data['final_marks'] ?? 0);
+$marks = (float)($data['marks'] ?? ($ass + $mid + $fin));
 
-$assignmentMarks = 0.0;
-$midMarks = 0.0;
-$finalMarks = 0.0;
-
-if ($studentInput === '' || $classId <= 0 || $subject === '') {
-    echo json_encode(['success' => false, 'message' => 'student, class_id, subject required', 'data' => null]);
-    exit;
+if ($student === '' || $classId <= 0 || $subject === '') {
+    respond(false, 'student, class_id, subject required');
 }
 
-if ($hasBreakdown) {
-    $assignmentMarks = (float)($data['assignment_marks'] ?? 0);
-    $midMarks = (float)($data['mid_marks'] ?? 0);
-    $finalMarks = (float)($data['final_marks'] ?? 0);
-
-    if ($assignmentMarks < 0 || $assignmentMarks > 10) {
-        echo json_encode(['success' => false, 'message' => 'Assignment mark must be between 0 and 10', 'data' => null]);
-        exit;
-    }
-    if ($midMarks < 0 || $midMarks > 30) {
-        echo json_encode(['success' => false, 'message' => 'Mid exam mark must be between 0 and 30', 'data' => null]);
-        exit;
-    }
-    if ($finalMarks < 0 || $finalMarks > 60) {
-        echo json_encode(['success' => false, 'message' => 'Final exam mark must be between 0 and 60', 'data' => null]);
-        exit;
-    }
-
-    $marks = $assignmentMarks + $midMarks + $finalMarks;
-}
-
-$studentUsername = $studentInput;
-if (ctype_digit($studentInput)) {
-    $sid = (int)$studentInput;
-    $u = $conn->prepare("SELECT username FROM users WHERE id = ? AND role = 'student' LIMIT 1");
-    if ($u) {
-        $u->bind_param('i', $sid);
-        $u->execute();
-        $row = $u->get_result()->fetch_assoc();
-        if ($row) $studentUsername = (string)$row['username'];
-        $u->close();
-    }
+if ($ass < 0 || $ass > 10 || $mid < 0 || $mid > 30 || $fin < 0 || $fin > 60) {
+    respond(false, 'Invalid score range');
 }
 
 if ($marks < 0) $marks = 0;
@@ -95,29 +43,32 @@ else if ($marks >= 80) $letter = 'B';
 else if ($marks >= 70) $letter = 'C';
 else if ($marks >= 60) $letter = 'D';
 
-$teacher = (string)$_SESSION['username'];
-$stmt = $conn->prepare("INSERT INTO grades (student_username, class_id, teacher_username, term, subject, marks, letter_grade) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE teacher_username = VALUES(teacher_username), marks = VALUES(marks), letter_grade = VALUES(letter_grade), entered_at = NOW()");
+$stmt = $conn->prepare("INSERT INTO grades
+    (student_username, class_id, teacher_username, term, subject, marks, letter_grade)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+    teacher_username = VALUES(teacher_username),
+    marks = VALUES(marks),
+    letter_grade = VALUES(letter_grade),
+    entered_at = NOW()");
+
 if (!$stmt) {
-    echo json_encode(['success' => false, 'message' => 'DB error', 'data' => null]);
-    exit;
+    respond(false, 'DB error');
 }
 
-$stmt->bind_param('sisssds', $studentUsername, $classId, $teacher, $term, $subject, $marks, $letter);
+$stmt->bind_param('sisssds', $student, $classId, $teacher, $term, $subject, $marks, $letter);
 $stmt->execute();
+$stmt->close();
 
-echo json_encode([
-    'success' => true,
-    'message' => 'Grade saved',
-    'data' => [
-        'student_username' => $studentUsername,
-        'class_id' => $classId,
-        'subject' => $subject,
-        'term' => $term,
-        'assignment_marks' => $assignmentMarks,
-        'mid_marks' => $midMarks,
-        'final_marks' => $finalMarks,
-        'marks' => $marks,
-        'letter_grade' => $letter
-    ]
+respond(true, 'Grade saved', [
+    'student_username' => $student,
+    'class_id' => $classId,
+    'term' => $term,
+    'subject' => $subject,
+    'assignment_marks' => $ass,
+    'mid_marks' => $mid,
+    'final_marks' => $fin,
+    'marks' => $marks,
+    'letter_grade' => $letter
 ]);
 ?>

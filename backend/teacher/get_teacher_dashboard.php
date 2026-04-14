@@ -1,14 +1,6 @@
 <?php
-header('Content-Type: application/json');
-require_once __DIR__ . '/../config/db_config.php';
-
-session_start();
-if (!isset($_SESSION['username']) || ($_SESSION['role'] ?? '') !== 'teacher') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized', 'data' => null]);
-    exit;
-}
-
-$username = (string)$_SESSION['username'];
+require_once __DIR__ . '/common.php';
+$teacher = require_teacher(false);
 
 $conn->query("CREATE TABLE IF NOT EXISTS classes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,6 +13,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     class_id INT NOT NULL,
     teacher_username VARCHAR(50) NOT NULL,
+    subject_name VARCHAR(100) NULL,
     assignment_type VARCHAR(20) NOT NULL DEFAULT 'teacher',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 )");
@@ -32,56 +25,47 @@ $conn->query("CREATE TABLE IF NOT EXISTS class_enrollments (
     enrollment_date DATE NULL
 )");
 
-$totalClasses = 0;
-$totalStudents = 0;
-$assignedClasses = [];
+$assigned = [];
+$stmt = $conn->prepare("SELECT DISTINCT a.class_id, c.name
+    FROM assignments a
+    LEFT JOIN classes c ON c.id = a.class_id
+    WHERE a.teacher_username = ? AND a.assignment_type = 'teacher'
+    ORDER BY a.class_id ASC");
 
-$sql = "SELECT DISTINCT a.class_id, c.name
-        FROM assignments a
-        LEFT JOIN classes c ON c.id = a.class_id
-        WHERE a.teacher_username = ? AND a.assignment_type = 'teacher'
-        ORDER BY a.class_id ASC";
-$st = $conn->prepare($sql);
-if ($st) {
-    $st->bind_param('s', $username);
-    $st->execute();
-    $res = $st->get_result();
+if ($stmt) {
+    $stmt->bind_param('s', $teacher);
+    $stmt->execute();
+    $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
-        $cid = (int)($row['class_id'] ?? 0);
-        if ($cid > 0) {
-            $assignedClasses[] = [
-                'class_id' => $cid,
-                'name' => (string)($row['name'] ?? ('Class ' . $cid))
+        $id = (int)($row['class_id'] ?? 0);
+        if ($id > 0) {
+            $assigned[] = [
+                'class_id' => $id,
+                'name' => (string)($row['name'] ?? ('Class ' . $id))
             ];
         }
     }
-    $st->close();
+    $stmt->close();
 }
 
-$totalClasses = count($assignedClasses);
-
-if ($totalClasses > 0) {
-    $classIds = array_map(function ($c) { return (int)$c['class_id']; }, $assignedClasses);
-    $classIds = array_values(array_filter($classIds, function ($v) { return $v > 0; }));
-    if (count($classIds) > 0) {
-        $in = implode(',', $classIds);
-        $resCount = $conn->query("SELECT COUNT(*) AS c FROM class_enrollments WHERE class_id IN ($in)");
-        if ($resCount) {
-            $row = $resCount->fetch_assoc();
-            $totalStudents = (int)($row['c'] ?? 0);
-        }
+$totalStudents = 0;
+$countStmt = $conn->prepare("SELECT COUNT(*) AS c FROM class_enrollments WHERE class_id = ?");
+if ($countStmt) {
+    foreach ($assigned as $c) {
+        $cid = (int)$c['class_id'];
+        $countStmt->bind_param('i', $cid);
+        $countStmt->execute();
+        $row = $countStmt->get_result()->fetch_assoc();
+        $totalStudents += (int)($row['c'] ?? 0);
     }
+    $countStmt->close();
 }
 
-echo json_encode([
-    'success' => true,
-    'message' => 'Teacher dashboard loaded',
-    'data' => [
-        'statistics' => [
-            'total_classes' => $totalClasses,
-            'total_students' => $totalStudents
-        ],
-        'assigned_classes' => $assignedClasses
-    ]
+respond(true, 'Teacher dashboard loaded', [
+    'statistics' => [
+        'total_classes' => count($assigned),
+        'total_students' => $totalStudents
+    ],
+    'assigned_classes' => $assigned
 ]);
 ?>

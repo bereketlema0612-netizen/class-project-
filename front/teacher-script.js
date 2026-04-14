@@ -1,7 +1,6 @@
-// Teacher Script - Class Project (Simple Working Version)
-
 const APP_BASE = '/bensa_school';
 const FRONT_BASE = APP_BASE + '/front';
+
 const API = {
     dashboard: APP_BASE + '/backend/teacher/get_teacher_dashboard.php',
     profile: APP_BASE + '/backend/teacher/get_teacher_profile.php',
@@ -13,476 +12,404 @@ const API = {
     logout: APP_BASE + '/backend/auth/logout.php'
 };
 
-const ASSESSMENT_LIMITS = {
-    assignment: 10,
-    mid: 30,
-    final: 60
-};
-
-const state = {
+var state = {
     user: null,
-    dashboard: null,
-    profile: null,
-    announcements: [],
     classes: [],
-    selectedClassIdForGrading: 0
+    announcements: [],
+    profile: null
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
+function el(id) {
+    return document.getElementById(id);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
     state.user = getCurrentUser();
     if (!state.user || state.user.role !== 'teacher') {
         window.location.href = FRONT_BASE + '/login.html';
         return;
     }
 
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
-    document.querySelectorAll('.nav-item').forEach((item) => {
-        item.addEventListener('click', (e) => {
+    bindNavigation();
+    bindEvents();
+
+    try {
+        await loadTeacherData();
+    } catch (err) {
+        showMessage('teacherPageMessage', 'Failed to load teacher data: ' + err.message, true);
+    }
+}
+
+function bindNavigation() {
+    var items = document.querySelectorAll('.nav-item');
+    items.forEach(function (item) {
+        item.addEventListener('click', function (e) {
             e.preventDefault();
             switchPage(item.getAttribute('data-page'));
         });
     });
-    document.getElementById('announcementFile')?.addEventListener('change', updateAnnouncementFilePreview);
-    document.getElementById('announcementFileUploadArea')?.addEventListener('click', openAnnouncementFilePicker);
-
-    await initializeTeacherPage();
-});
-
-async function initializeTeacherPage() {
-    try {
-        const [dashboard, profile, ann] = await Promise.all([
-            apiGet(API.dashboard),
-            apiGet(API.profile),
-            apiGet(API.announcements + '?page=1&limit=20')
-        ]);
-
-        state.dashboard = dashboard;
-        state.profile = profile.teacher || null;
-        state.announcements = ann.announcements || [];
-        state.classes = dashboard.assigned_classes || [];
-
-        renderBasicTeacherInfo();
-        populateClassSelects();
-        renderAnnouncements();
-    } catch (e) {
-        showPageMessage('Failed to load teacher data: ' + e.message, true);
-    }
 }
 
-async function apiGet(url) {
-    const res = await fetch(url, { credentials: 'include' });
-    const text = await res.text();
-    let body = null;
-    try { body = JSON.parse(text); } catch (_) { throw new Error('Server returned invalid JSON: ' + text.slice(0, 120)); }
-    if (!body || !body.success) {
-        if (String(body?.message || '').toLowerCase() === 'unauthorized') {
-            handleUnauthorized();
-            throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(body?.message || 'Request failed');
-    }
-    return body.data || {};
-}
+function bindEvents() {
+    el('logoutBtn').addEventListener('click', logout);
+    el('openProfileBtn').addEventListener('click', function () { switchPage('profile'); });
 
-async function apiPost(url, payload) {
-    const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    const text = await res.text();
-    let body = null;
-    try { body = JSON.parse(text); } catch (_) { throw new Error('Server returned invalid JSON: ' + text.slice(0, 120)); }
-    if (!body || !body.success) {
-        if (String(body?.message || '').toLowerCase() === 'unauthorized') {
-            handleUnauthorized();
-            throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(body?.message || 'Request failed');
-    }
-    return body.data || {};
-}
+    el('classSelectForGrading').addEventListener('change', onGradingClassChange);
+    el('sectionSelectForGrading').addEventListener('change', onGradingSectionChange);
+    el('loadStudentsBtn').addEventListener('click', loadStudentsForGrading);
+    el('selectAllStudentsForGrade').addEventListener('change', toggleSelectAllStudents);
+    el('submitGradesBtn').addEventListener('click', submitSelectedGrades);
 
-async function apiPostForm(url, formData) {
-    const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-    });
-    const text = await res.text();
-    let body = null;
-    try { body = JSON.parse(text); } catch (_) { throw new Error('Server returned invalid JSON: ' + text.slice(0, 120)); }
-    if (!body || !body.success) {
-        if (String(body?.message || '').toLowerCase() === 'unauthorized') {
-            handleUnauthorized();
-            throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(body?.message || 'Request failed');
-    }
-    return body.data || {};
-}
-
-function handleUnauthorized() {
-    localStorage.removeItem('currentUser');
-    window.location.replace(FRONT_BASE + '/login.html');
-}
-
-function renderBasicTeacherInfo() {
-    const p = state.profile || {};
-    const name = [p.fname, p.lname].filter(Boolean).join(' ') || state.user.username;
-
-    setText('profileName', name);
-    setText('profileDept', p.department || 'Teacher');
-    setText('profileEmpID', p.employee_id_generated || p.username || '-');
-    setText('profileEmail', p.email || '-');
-    setText('profilePhone', p.office_phone || '-');
-    setText('profileOffice', p.office_room || '-');
-
-    const totalClasses = Number(state.dashboard?.statistics?.total_classes || 0);
-    const totalStudents = Number(state.dashboard?.statistics?.total_students || 0);
-    setText('totalClasses', totalClasses);
-    setText('totalStudents', totalStudents);
-    setText('pendingGrading', 0);
-
-    const status = document.getElementById('gradingStatusContainer');
-    if (status) {
-        status.innerHTML = '';
-        if (!state.classes.length) {
-            status.innerHTML = '<div class="status-item"><span class="class-name">No assigned class yet</span><span class="badge">0</span></div>';
-        } else {
-            state.classes.forEach((c) => {
-                const item = document.createElement('div');
-                item.className = 'status-item';
-                item.innerHTML = `<span class="class-name">${escapeHtml(c.name || ('Class ' + c.class_id))}</span><span class="badge">Ready</span>`;
-                status.appendChild(item);
-            });
-        }
-    }
+    el('openAnnouncementModalBtn').addEventListener('click', openAnnouncementModal);
+    el('closeAnnouncementModalBtn').addEventListener('click', closeAnnouncementModal);
+    el('postAnnouncementBtn').addEventListener('click', saveAnnouncement);
+    el('announcementTargetMode').addEventListener('change', onAnnouncementTargetModeChange);
+    el('announcementFile').addEventListener('change', updateAnnouncementFilePreview);
+    el('removeAnnouncementFileBtn').addEventListener('click', removeAnnouncementFile);
 }
 
 function switchPage(pageName) {
-    document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+    var pages = document.querySelectorAll('.page');
+    var nav = document.querySelectorAll('.nav-item');
 
-    document.getElementById(pageName)?.classList.add('active');
-    document.querySelector(`[data-page="${pageName}"]`)?.classList.add('active');
+    pages.forEach(function (p) { p.classList.remove('active'); });
+    nav.forEach(function (n) { n.classList.remove('active'); });
 
-    const titleMap = {
+    var page = el(pageName);
+    if (page) {
+        page.classList.add('active');
+    }
+
+    var activeNav = document.querySelector('.nav-item[data-page="' + pageName + '"]');
+    if (activeNav) {
+        activeNav.classList.add('active');
+    }
+
+    var titleMap = {
         dashboard: 'Dashboard',
         grading: 'Grading',
         announcements: 'Announcements',
         profile: 'Profile'
     };
-    setText('pageTitle', titleMap[pageName] || 'Dashboard');
-
-    if (pageName === 'announcements') renderAnnouncements();
+    el('pageTitle').textContent = titleMap[pageName] || 'Dashboard';
 }
 
-function openMyProfile() {
-    switchPage('profile');
-}
+async function loadTeacherData() {
+    var dashboard = await getJSON(API.dashboard);
+    var profile = await getJSON(API.profile);
+    var announcements = await getJSON(API.announcements + '?page=1&limit=50');
 
-function classParts(name, classId) {
-    const text = String(name || ('Class ' + classId));
-    const m = text.match(/Grade\s*(\d+)\s*-\s*([A-Za-z0-9_-]+)/i);
-    if (m) return { grade: m[1], section: m[2] };
-    return { grade: 'General', section: String(classId || '') };
-}
+    state.classes = dashboard.assigned_classes || [];
+    state.profile = profile.teacher || null;
+    state.announcements = announcements.announcements || [];
 
-function populateClassSelects() {
-    const annSingle = document.getElementById('announcementClassSelect');
-    const annMulti = document.getElementById('announcementClassMultiSelect');
-    const gradeSelect = document.getElementById('classSelectForGrading');
-
-    const allSelects = [annSingle, annMulti];
-    allSelects.forEach((sel) => {
-        if (!sel) return;
-        const first = sel.id.includes('Multi') ? '' : '<option value="">-- Choose --</option>';
-        sel.innerHTML = first;
-        state.classes.forEach((c) => {
-            const opt = document.createElement('option');
-            opt.value = String(c.class_id || '');
-            opt.textContent = c.name || ('Class ' + c.class_id);
-            sel.appendChild(opt);
-        });
-    });
-
-    if (gradeSelect) {
-        gradeSelect.innerHTML = '<option value="">-- Choose a grade --</option>';
-        const gradeSet = new Set();
-        state.classes.forEach((c) => gradeSet.add(classParts(c.name, c.class_id).grade));
-        [...gradeSet].forEach((g) => {
-            const opt = document.createElement('option');
-            opt.value = g;
-            opt.textContent = g === 'General' ? 'General' : ('Grade ' + g);
-            gradeSelect.appendChild(opt);
-        });
-    }
-}
-
-async function loadAnnouncements() {
-    const data = await apiGet(API.announcements + '?page=1&limit=50');
-    state.announcements = data.announcements || [];
+    renderDashboard(dashboard);
+    renderProfile();
     renderAnnouncements();
+    fillClassSelects();
+}
+
+function renderDashboard(dashboard) {
+    var stats = dashboard.statistics || {};
+    setText('totalClasses', stats.total_classes || 0);
+    setText('totalStudents', stats.total_students || 0);
+    setText('pendingGrading', 0);
+
+    var box = el('gradingStatusContainer');
+    box.innerHTML = '';
+
+    if (state.classes.length === 0) {
+        box.innerHTML = '<p>No assigned class yet.</p>';
+        return;
+    }
+
+    state.classes.forEach(function (c) {
+        var div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = '<strong>' + escapeHtml(c.name || ('Class ' + c.class_id)) + '</strong> - Ready';
+        box.appendChild(div);
+    });
+}
+
+function renderProfile() {
+    var p = state.profile || {};
+    var name = '';
+    if (p.fname || p.lname) {
+        name = ((p.fname || '') + ' ' + (p.lname || '')).trim();
+    } else {
+        name = state.user.username || 'Teacher';
+    }
+
+    setText('profileName', name);
+    setText('profileDept', 'Department: ' + (p.department || 'Teacher'));
+    setText('profileEmpID', 'Employee ID: ' + (p.employee_id_generated || p.username || '-'));
+    setText('profileEmail', p.email || '-');
+    setText('profilePhone', p.office_phone || '-');
+    setText('profileOffice', p.office_room || '-');
 }
 
 function renderAnnouncements() {
-    const box = document.getElementById('announcementsContainer');
-    if (!box) return;
+    var box = el('announcementsContainer');
     box.innerHTML = '';
 
-    if (!state.announcements.length) {
-        box.innerHTML = '<div class="card"><p>No announcements yet.</p></div>';
+    if (state.announcements.length === 0) {
+        box.innerHTML = '<div class="card announcement-card"><p class="announcement-body">No announcements yet.</p></div>';
         return;
     }
 
-    state.announcements.forEach((a) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const fileHtml = a.attachment_url
-            ? `<p><a href="${escapeHtml(APP_BASE + '/' + String(a.attachment_url).replace(/^\/+/, ''))}" target="_blank" rel="noopener">Attachment: ${escapeHtml(a.attachment_name || 'Download file')}</a></p>`
-            : '';
-        card.innerHTML = `
-            <h3>${escapeHtml(a.title || 'Untitled')}</h3>
-            <p>${escapeHtml(a.message || '')}</p>
-            ${fileHtml}
-            <small>${escapeHtml(a.created_at || '')}</small>
-        `;
-        box.appendChild(card);
+    state.announcements.forEach(function (a) {
+        var div = document.createElement('div');
+        div.className = 'card announcement-card';
+
+        var fileHtml = '';
+        if (a.attachment_url) {
+            var fileUrl = APP_BASE + '/' + String(a.attachment_url).replace(/^\/+/, '');
+            var fileName = a.attachment_name || 'Download file';
+            fileHtml = '<p class="announcement-body"><a href="' + escapeHtml(fileUrl) + '" target="_blank">Attachment: ' + escapeHtml(fileName) + '</a></p>';
+        }
+
+        var category = '';
+        if (a.class_name) {
+            category = a.class_name;
+        } else if (a.class_id) {
+            category = 'Class ' + a.class_id;
+        } else {
+            category = 'Teacher';
+        }
+
+        div.innerHTML =
+            '<div class="announcement-header">' +
+            '<h3>' + escapeHtml(a.title || 'Untitled') + '</h3>' +
+            '<p class="announcement-date">' + escapeHtml(formatDate(a.created_at)) + '</p>' +
+            '</div>' +
+            '<p class="announcement-category">' + escapeHtml(String(category).toUpperCase()) + '</p>' +
+            '<p class="announcement-body">' + escapeHtml(a.message || '') + '</p>' +
+            fileHtml;
+
+        box.appendChild(div);
     });
 }
 
-function openAnnouncementModal() {
-    const modal = document.getElementById('announcementModal');
-    if (!modal) return;
-    modal.classList.add('show');
-    modal.classList.add('active');
-    showInlineMessage('announcementInlineMessage', '', false);
-}
-function closeAnnouncementModal() {
-    const modal = document.getElementById('announcementModal');
-    if (!modal) return;
-    modal.classList.remove('show');
-    modal.classList.remove('active');
-    showInlineMessage('announcementInlineMessage', '', false);
-}
+function fillClassSelects() {
+    var single = el('announcementClassSelect');
+    var multi = el('announcementClassMultiSelect');
+    var gradeSelect = el('classSelectForGrading');
 
-function onAnnouncementTargetModeChange() {
-    const mode = document.getElementById('announcementTargetMode')?.value || 'single';
-    const s = document.getElementById('announcementSingleClassGroup');
-    const m = document.getElementById('announcementMultiClassGroup');
-    if (s) s.style.display = mode === 'single' ? '' : 'none';
-    if (m) m.style.display = mode === 'multiple' ? '' : 'none';
-}
+    single.innerHTML = '<option value="">-- Choose --</option>';
+    multi.innerHTML = '';
+    gradeSelect.innerHTML = '<option value="">-- Choose --</option>';
 
-function openAnnouncementFilePicker() { document.getElementById('announcementFile')?.click(); }
-function removeAnnouncementFile() {
-    const i = document.getElementById('announcementFile');
-    if (i) i.value = '';
-    updateAnnouncementFilePreview();
-}
+    var grades = [];
 
-function updateAnnouncementFilePreview() {
-    const input = document.getElementById('announcementFile');
-    const preview = document.getElementById('announcementFilePreview');
-    const name = document.getElementById('announcementFileName');
-    if (!input || !preview || !name) return;
+    state.classes.forEach(function (c) {
+        var name = c.name || ('Class ' + c.class_id);
+        var classId = String(c.class_id || '');
 
-    const file = input.files && input.files[0] ? input.files[0] : null;
-    if (!file) {
-        preview.style.display = 'none';
-        name.textContent = '';
-        return;
-    }
+        var op1 = document.createElement('option');
+        op1.value = classId;
+        op1.textContent = name;
+        single.appendChild(op1);
 
-    preview.style.display = 'flex';
-    name.textContent = file.name;
-}
+        var op2 = document.createElement('option');
+        op2.value = classId;
+        op2.textContent = name;
+        multi.appendChild(op2);
 
-async function saveAnnouncement() {
-    const mode = document.getElementById('announcementTargetMode')?.value || 'single';
-    const title = (document.getElementById('announcementTitle')?.value || '').trim();
-    const message = (document.getElementById('announcementContent')?.value || '').trim();
-    const singleClassId = Number(document.getElementById('announcementClassSelect')?.value || 0);
-    const fileInput = document.getElementById('announcementFile');
-    const selectedFile = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
-
-    if (!title || !message) {
-        showInlineMessage('announcementInlineMessage', 'Please enter title and content.', true);
-        return;
-    }
-
-    let classIds = [];
-    if (mode === 'single') {
-        classIds = singleClassId > 0 ? [singleClassId] : [0];
-    } else if (mode === 'multiple') {
-        const sel = document.getElementById('announcementClassMultiSelect');
-        classIds = sel ? [...sel.selectedOptions].map((o) => Number(o.value)).filter((v) => v > 0) : [];
-    } else {
-        classIds = state.classes.map((c) => Number(c.class_id)).filter((v) => v > 0);
-    }
-
-    if (!classIds.length) classIds = [0];
-
-    try {
-        for (const cid of classIds) {
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('message', message);
-            formData.append('class_id', String(cid));
-            if (selectedFile) formData.append('announcement_file', selectedFile);
-            await apiPostForm(API.createAnnouncement, formData);
+        var parts = classNameParts(name, c.class_id);
+        if (grades.indexOf(parts.grade) === -1) {
+            grades.push(parts.grade);
         }
-        showInlineMessage('announcementInlineMessage', '', false);
-        showPageMessage('Announcement posted successfully.', false);
-        removeAnnouncementFile();
-        closeAnnouncementModal();
-        await loadAnnouncements();
-    } catch (e) {
-        showInlineMessage('announcementInlineMessage', 'Failed to post announcement: ' + e.message, true);
+    });
+
+    grades.forEach(function (g) {
+        var op = document.createElement('option');
+        op.value = g;
+        op.textContent = g === 'General' ? 'General' : ('Grade ' + g);
+        gradeSelect.appendChild(op);
+    });
+}
+
+function classNameParts(name, classId) {
+    var text = String(name || ('Class ' + classId));
+    var match = text.match(/Grade\s*(\d+)\s*-\s*([A-Za-z0-9_-]+)/i);
+    if (match) {
+        return { grade: match[1], section: match[2] };
     }
+    return { grade: 'General', section: String(classId || '') };
 }
 
 function onGradingClassChange() {
-    const grade = document.getElementById('classSelectForGrading')?.value || '';
-    const sectionSel = document.getElementById('sectionSelectForGrading');
-    const subjectSel = document.getElementById('gradingSubjectSelect');
-    if (!sectionSel) return;
+    var grade = el('classSelectForGrading').value;
+    var section = el('sectionSelectForGrading');
+    var subject = el('gradingSubjectSelect');
 
-    sectionSel.innerHTML = '<option value="">-- Choose section --</option>';
-    if (subjectSel) subjectSel.innerHTML = '<option value="">-- Choose section first --</option>';
+    section.innerHTML = '<option value="">-- Choose --</option>';
+    subject.innerHTML = '<option value="">-- Choose --</option>';
 
-    state.classes.forEach((c) => {
-        const parts = classParts(c.name, c.class_id);
-        if (String(parts.grade) === String(grade)) {
-            const opt = document.createElement('option');
-            opt.value = String(c.class_id || '');
-            opt.textContent = parts.section || ('Class ' + c.class_id);
-            sectionSel.appendChild(opt);
+    state.classes.forEach(function (c) {
+        var parts = classNameParts(c.name, c.class_id);
+        if (parts.grade === grade) {
+            var op = document.createElement('option');
+            op.value = String(c.class_id || '');
+            op.textContent = parts.section || ('Class ' + c.class_id);
+            section.appendChild(op);
         }
     });
 }
 
 async function onGradingSectionChange() {
-    const classId = Number(document.getElementById('sectionSelectForGrading')?.value || 0);
-    state.selectedClassIdForGrading = classId;
+    var classId = Number(el('sectionSelectForGrading').value || 0);
+    var subject = el('gradingSubjectSelect');
 
-    const subjectSel = document.getElementById('gradingSubjectSelect');
-    if (!subjectSel) return;
-    subjectSel.innerHTML = '<option value="">-- Loading subjects --</option>';
+    subject.innerHTML = '<option value="">Loading...</option>';
 
-    if (!classId) {
-        subjectSel.innerHTML = '<option value="">-- Choose section first --</option>';
+    if (classId <= 0) {
+        subject.innerHTML = '<option value="">-- Choose --</option>';
         return;
     }
 
     try {
-        const data = await apiGet(`${API.classSubjects}?class_id=${classId}`);
-        const list = data.subjects || [];
-        subjectSel.innerHTML = '<option value="">-- Choose subject --</option>';
-        list.forEach((s) => {
-            const opt = document.createElement('option');
-            opt.value = String(s);
-            opt.textContent = String(s);
-            subjectSel.appendChild(opt);
+        var data = await getJSON(API.classSubjects + '?class_id=' + classId);
+        var list = data.subjects || [];
+        subject.innerHTML = '<option value="">-- Choose --</option>';
+        list.forEach(function (s) {
+            var op = document.createElement('option');
+            op.value = s;
+            op.textContent = s;
+            subject.appendChild(op);
         });
-    } catch (e) {
-        subjectSel.innerHTML = '<option value="">-- Failed to load subjects --</option>';
+    } catch (err) {
+        subject.innerHTML = '<option value="">Failed to load</option>';
     }
 }
 
-function onGradingSubjectChange() {}
-function onGradingTermChange() {}
+async function loadStudentsForGrading() {
+    var classId = Number(el('sectionSelectForGrading').value || 0);
+    var subject = el('gradingSubjectSelect').value.trim();
 
-async function loadSimpleStudentsForGrading() {
-    const classId = Number(document.getElementById('sectionSelectForGrading')?.value || 0);
-    const subject = (document.getElementById('gradingSubjectSelect')?.value || '').trim();
-    if (!classId || !subject) {
-        showInlineMessage('gradingScoresMessage', 'Choose section and subject first.', true);
+    if (classId <= 0 || subject === '') {
+        showMessage('gradingScoresMessage', 'Choose section and subject first.', true);
         return;
     }
 
     try {
-        const data = await apiGet(`${API.classStudents}?class_id=${classId}`);
-        const students = data.students || [];
-        const body = document.getElementById('gradingTableBody');
-        const section = document.getElementById('gradingTableSection');
-        if (!body || !section) return;
-
+        var data = await getJSON(API.classStudents + '?class_id=' + classId);
+        var students = data.students || [];
+        var body = el('gradingTableBody');
         body.innerHTML = '';
-        students.forEach((s) => {
-            const tr = document.createElement('tr');
-            tr.dataset.student = s.student_username || '';
-            tr.innerHTML = `
-                <td><input type="checkbox" class="student-check"></td>
-                <td>${escapeHtml(s.student_username || '')}</td>
-                <td>${escapeHtml(s.full_name || '')}</td>
-                <td>${escapeHtml((document.getElementById('classSelectForGrading')?.value || '').toString())}</td>
-                <td><input type="number" class="score-ass" min="0" max="10" value="0"></td>
-                <td><input type="number" class="score-mid" min="0" max="30" value="0"></td>
-                <td><input type="number" class="score-fin" min="0" max="60" value="0"></td>
-                <td class="score-total">0</td>
-                <td class="score-letter">F</td>
-            `;
+
+        var gradeText = el('classSelectForGrading').value || '';
+
+        students.forEach(function (s) {
+            var tr = document.createElement('tr');
+            tr.setAttribute('data-student', s.student_username || '');
+            tr.innerHTML =
+                '<td><input type="checkbox" class="student-check"></td>' +
+                '<td>' + escapeHtml(s.student_username || '') + '</td>' +
+                '<td>' + escapeHtml(s.full_name || '') + '</td>' +
+                '<td>' + escapeHtml(gradeText) + '</td>' +
+                '<td><input type="number" class="score-ass" min="0" max="10" value="0"></td>' +
+                '<td><input type="number" class="score-mid" min="0" max="30" value="0"></td>' +
+                '<td><input type="number" class="score-fin" min="0" max="60" value="0"></td>' +
+                '<td class="score-total">0</td>' +
+                '<td class="score-letter">F</td>';
+
             body.appendChild(tr);
         });
 
-        body.querySelectorAll('tr').forEach((tr) => {
-            const recalc = () => {
-                const scores = getRowScores(tr, true);
-                const t = scores.total;
-                tr.querySelector('.score-total').textContent = String(t);
-                tr.querySelector('.score-letter').textContent = gradeLetter(t);
+        var rows = body.querySelectorAll('tr');
+        rows.forEach(function (row) {
+            var recalc = function () {
+                var sc = getScores(row);
+                row.querySelector('.score-total').textContent = String(sc.total);
+                row.querySelector('.score-letter').textContent = gradeLetter(sc.total);
             };
-            tr.querySelector('.score-ass')?.addEventListener('input', recalc);
-            tr.querySelector('.score-mid')?.addEventListener('input', recalc);
-            tr.querySelector('.score-fin')?.addEventListener('input', recalc);
+            row.querySelector('.score-ass').addEventListener('input', recalc);
+            row.querySelector('.score-mid').addEventListener('input', recalc);
+            row.querySelector('.score-fin').addEventListener('input', recalc);
             recalc();
         });
 
-        section.style.display = '';
-        showInlineMessage('gradingScoresMessage', `Loaded ${students.length} students.`, false);
-    } catch (e) {
-        showInlineMessage('gradingScoresMessage', 'Failed to load students: ' + e.message, true);
+        el('gradingTableSection').style.display = 'block';
+        showMessage('gradingScoresMessage', 'Loaded ' + students.length + ' students.', false);
+    } catch (err) {
+        showMessage('gradingScoresMessage', 'Failed to load students: ' + err.message, true);
     }
 }
 
-function toggleSelectAllSimpleStudents(src) {
-    const checked = !!src?.checked;
-    document.querySelectorAll('#gradingTableBody .student-check').forEach((c) => { c.checked = checked; });
+function toggleSelectAllStudents() {
+    var checked = el('selectAllStudentsForGrade').checked;
+    var list = document.querySelectorAll('#gradingTableBody .student-check');
+    list.forEach(function (c) { c.checked = checked; });
 }
 
-async function submitSimpleGrades() {
-    const classId = Number(document.getElementById('sectionSelectForGrading')?.value || 0);
-    const subject = (document.getElementById('gradingSubjectSelect')?.value || '').trim();
-    const term = (document.getElementById('gradingTermSelect')?.value || 'Term1').trim();
+async function submitSelectedGrades() {
+    var classId = Number(el('sectionSelectForGrading').value || 0);
+    var subject = el('gradingSubjectSelect').value.trim();
+    var term = el('gradingTermSelect').value.trim();
 
-    const rows = [...document.querySelectorAll('#gradingTableBody tr')].filter((tr) => tr.querySelector('.student-check')?.checked);
-    if (!classId || !subject || !rows.length) {
-        showInlineMessage('gradingBulkMessage', 'Select class, subject and at least one student.', true);
+    var rows = Array.from(document.querySelectorAll('#gradingTableBody tr')).filter(function (r) {
+        var cb = r.querySelector('.student-check');
+        return cb && cb.checked;
+    });
+
+    if (classId <= 0 || subject === '' || rows.length === 0) {
+        showMessage('gradingBulkMessage', 'Select class, subject and students.', true);
         return;
     }
 
     try {
-        for (const tr of rows) {
-            const student = tr.dataset.student || '';
-            const scores = getRowScores(tr, true);
-            await apiPost(API.enterGrades, {
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var student = row.getAttribute('data-student') || '';
+            var sc = getScores(row);
+
+            await postJSON(API.enterGrades, {
                 student_username: student,
                 class_id: classId,
-                term,
-                subject,
-                assignment_marks: scores.assignment,
-                mid_marks: scores.mid,
-                final_marks: scores.final,
-                marks: scores.total
+                term: term,
+                subject: subject,
+                assignment_marks: sc.assignment,
+                mid_marks: sc.mid,
+                final_marks: sc.final,
+                marks: sc.total
             });
         }
-        showInlineMessage('gradingBulkMessage', 'Grades submitted successfully.', false);
-    } catch (e) {
-        showInlineMessage('gradingBulkMessage', 'Failed to submit grades: ' + e.message, true);
+
+        showMessage('gradingBulkMessage', 'Grades submitted successfully.', false);
+    } catch (err) {
+        showMessage('gradingBulkMessage', 'Failed to submit grades: ' + err.message, true);
     }
+}
+
+function getScores(row) {
+    var ass = Number(row.querySelector('.score-ass').value || 0);
+    var mid = Number(row.querySelector('.score-mid').value || 0);
+    var fin = Number(row.querySelector('.score-fin').value || 0);
+
+    ass = clamp(ass, 0, 10);
+    mid = clamp(mid, 0, 30);
+    fin = clamp(fin, 0, 60);
+
+    row.querySelector('.score-ass').value = String(ass);
+    row.querySelector('.score-mid').value = String(mid);
+    row.querySelector('.score-fin').value = String(fin);
+
+    return {
+        assignment: ass,
+        mid: mid,
+        final: fin,
+        total: ass + mid + fin
+    };
+}
+
+function clamp(v, min, max) {
+    if (!Number.isFinite(v)) return min;
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
 }
 
 function gradeLetter(total) {
@@ -493,110 +420,242 @@ function gradeLetter(total) {
     return 'F';
 }
 
-function clampNumber(value, min, max) {
-    if (!Number.isFinite(value)) return min;
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
+function openAnnouncementModal() {
+    el('announcementModal').style.display = 'flex';
+    showMessage('announcementInlineMessage', '', false);
 }
 
-function normalizeScoreInput(input, max) {
-    if (!input) return 0;
-    const raw = Number(input.value);
-    const safe = clampNumber(raw, 0, max);
-    if (!Number.isFinite(raw) || raw !== safe) {
-        input.value = String(safe);
-    }
-    return safe;
+function closeAnnouncementModal() {
+    el('announcementModal').style.display = 'none';
+    showMessage('announcementInlineMessage', '', false);
 }
 
-function getRowScores(tr, normalizeInputs) {
-    const assInput = tr.querySelector('.score-ass');
-    const midInput = tr.querySelector('.score-mid');
-    const finInput = tr.querySelector('.score-fin');
-
-    const assignment = normalizeInputs
-        ? normalizeScoreInput(assInput, ASSESSMENT_LIMITS.assignment)
-        : clampNumber(Number(assInput?.value || 0), 0, ASSESSMENT_LIMITS.assignment);
-    const mid = normalizeInputs
-        ? normalizeScoreInput(midInput, ASSESSMENT_LIMITS.mid)
-        : clampNumber(Number(midInput?.value || 0), 0, ASSESSMENT_LIMITS.mid);
-    const final = normalizeInputs
-        ? normalizeScoreInput(finInput, ASSESSMENT_LIMITS.final)
-        : clampNumber(Number(finInput?.value || 0), 0, ASSESSMENT_LIMITS.final);
-
-    return {
-        assignment,
-        mid,
-        final,
-        total: assignment + mid + final
-    };
+function onAnnouncementTargetModeChange() {
+    var mode = el('announcementTargetMode').value;
+    el('announcementSingleClassGroup').style.display = mode === 'single' ? 'block' : 'none';
+    el('announcementMultiClassGroup').style.display = mode === 'multiple' ? 'block' : 'none';
 }
 
-function showInlineMessage(id, msg, isError) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (!msg) {
-        el.style.display = 'none';
-        el.textContent = '';
+function updateAnnouncementFilePreview() {
+    var input = el('announcementFile');
+    var preview = el('announcementFilePreview');
+    var fileName = el('announcementFileName');
+
+    if (!input.files || !input.files[0]) {
+        preview.style.display = 'none';
+        fileName.textContent = '';
         return;
     }
-    el.style.display = 'block';
-    el.textContent = msg;
-    el.style.color = isError ? '#b91c1c' : '#166534';
+
+    preview.style.display = 'block';
+    fileName.textContent = input.files[0].name;
 }
 
-function showPageMessage(msg, isError) {
-    const el = document.getElementById('teacherPageMessage');
-    if (!el) return;
-    el.style.display = 'block';
-    el.textContent = msg;
-    el.style.color = isError ? '#b91c1c' : '#166534';
+function removeAnnouncementFile() {
+    el('announcementFile').value = '';
+    updateAnnouncementFilePreview();
+}
+
+async function saveAnnouncement() {
+    var title = el('announcementTitle').value.trim();
+    var message = el('announcementContent').value.trim();
+    var mode = el('announcementTargetMode').value;
+
+    if (title === '' || message === '') {
+        showMessage('announcementInlineMessage', 'Please enter title and message.', true);
+        return;
+    }
+
+    var classIds = [];
+    if (mode === 'single') {
+        var single = Number(el('announcementClassSelect').value || 0);
+        classIds = single > 0 ? [single] : [0];
+    } else if (mode === 'multiple') {
+        var selected = Array.from(el('announcementClassMultiSelect').selectedOptions);
+        classIds = selected.map(function (o) { return Number(o.value); }).filter(function (v) { return v > 0; });
+    } else {
+        classIds = state.classes.map(function (c) { return Number(c.class_id || 0); }).filter(function (v) { return v > 0; });
+    }
+
+    if (classIds.length === 0) {
+        classIds = [0];
+    }
+
+    try {
+        for (var i = 0; i < classIds.length; i++) {
+            var fd = new FormData();
+            fd.append('title', title);
+            fd.append('message', message);
+            fd.append('class_id', String(classIds[i]));
+
+            var fileInput = el('announcementFile');
+            if (fileInput.files && fileInput.files[0]) {
+                fd.append('announcement_file', fileInput.files[0]);
+            }
+
+            await postForm(API.createAnnouncement, fd);
+        }
+
+        el('announcementTitle').value = '';
+        el('announcementContent').value = '';
+        removeAnnouncementFile();
+        closeAnnouncementModal();
+
+        var data = await getJSON(API.announcements + '?page=1&limit=50');
+        state.announcements = data.announcements || [];
+        renderAnnouncements();
+
+        showMessage('teacherPageMessage', 'Announcement posted.', false);
+    } catch (err) {
+        showMessage('announcementInlineMessage', 'Failed to post announcement: ' + err.message, true);
+    }
+}
+
+async function getJSON(url) {
+    var res = await fetch(url, { credentials: 'include' });
+    var text = await res.text();
+    var body = null;
+
+    try {
+        body = JSON.parse(text);
+    } catch (e) {
+        throw new Error('Invalid JSON from server');
+    }
+
+    if (!body || !body.success) {
+        if (String(body && body.message ? body.message : '').toLowerCase() === 'unauthorized') {
+            handleUnauthorized();
+        }
+        throw new Error(body && body.message ? body.message : 'Request failed');
+    }
+
+    return body.data || {};
+}
+
+async function postJSON(url, payload) {
+    var res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    var text = await res.text();
+    var body = null;
+
+    try {
+        body = JSON.parse(text);
+    } catch (e) {
+        throw new Error('Invalid JSON from server');
+    }
+
+    if (!body || !body.success) {
+        if (String(body && body.message ? body.message : '').toLowerCase() === 'unauthorized') {
+            handleUnauthorized();
+        }
+        throw new Error(body && body.message ? body.message : 'Request failed');
+    }
+
+    return body.data || {};
+}
+
+async function postForm(url, formData) {
+    var res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+    });
+
+    var text = await res.text();
+    var body = null;
+
+    try {
+        body = JSON.parse(text);
+    } catch (e) {
+        throw new Error('Invalid JSON from server');
+    }
+
+    if (!body || !body.success) {
+        if (String(body && body.message ? body.message : '').toLowerCase() === 'unauthorized') {
+            handleUnauthorized();
+        }
+        throw new Error(body && body.message ? body.message : 'Request failed');
+    }
+
+    return body.data || {};
 }
 
 async function logout() {
     try {
         await fetch(API.logout, { method: 'POST', credentials: 'include' });
-    } catch (_) {}
+    } catch (e) {
+    }
+
     localStorage.removeItem('currentUser');
     sessionStorage.clear();
     window.location.replace(FRONT_BASE + '/login.html');
 }
 
+function handleUnauthorized() {
+    localStorage.removeItem('currentUser');
+    window.location.replace(FRONT_BASE + '/login.html');
+}
+
+function formatDate(value) {
+    var s = String(value || '').trim();
+    if (!s) return '';
+    var d = new Date(s.replace(' ', 'T'));
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleDateString();
+}
+
 function getCurrentUser() {
-    const raw = localStorage.getItem('currentUser');
+    var raw = localStorage.getItem('currentUser');
     if (!raw) return null;
-    try { return JSON.parse(raw); } catch (_) { return null; }
+
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+function showMessage(id, text, isError) {
+    var box = el(id);
+    if (!box) return;
+
+    if (!text) {
+        box.style.display = 'none';
+        box.textContent = '';
+        return;
+    }
+
+    box.style.display = 'block';
+    box.textContent = text;
+
+    if (isError) {
+        box.style.background = '#fee2e2';
+        box.style.borderColor = '#fecaca';
+        box.style.color = '#b91c1c';
+    } else {
+        box.style.background = '#dcfce7';
+        box.style.borderColor = '#86efac';
+        box.style.color = '#166534';
+    }
 }
 
 function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = String(value ?? '');
+    var node = el(id);
+    if (node) {
+        node.textContent = String(value == null ? '' : value);
+    }
 }
 
-function escapeHtml(v) {
-    return String(v ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
-
-// Keep these available for inline onclick handlers in HTML.
-Object.assign(window, {
-    openMyProfile,
-    openAnnouncementModal,
-    closeAnnouncementModal,
-    onAnnouncementTargetModeChange,
-    openAnnouncementFilePicker,
-    removeAnnouncementFile,
-    saveAnnouncement,
-    onGradingClassChange,
-    onGradingSectionChange,
-    onGradingSubjectChange,
-    onGradingTermChange,
-    loadSimpleStudentsForGrading,
-    toggleSelectAllSimpleStudents,
-    submitSimpleGrades
-});
