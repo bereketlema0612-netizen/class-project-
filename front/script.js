@@ -77,8 +77,7 @@ function switchPage(pageName) {
         const map = {
             dashboard: 'Dashboard',
             grades: 'Grades',
-            announcements: 'Announcements',
-            profile: 'Profile'
+            announcements: 'Announcements'
         };
         title.textContent = map[pageName] || 'Dashboard';
     }
@@ -88,7 +87,7 @@ function switchPage(pageName) {
 }
 
 function openMyProfile() {
-    switchPage('profile');
+    switchPage('dashboard');
 }
 
 function renderDashboard() {
@@ -189,6 +188,9 @@ function renderAnnouncementsPage() {
     if (filter === 'school') list = list.filter((a) => String(a.source || '') === 'director');
     if (filter === 'teacher') list = list.filter((a) => String(a.source || '') === 'teacher');
 
+    const hidden = getHiddenAnnouncements();
+    list = list.filter((a) => hidden.indexOf(announcementKey(a)) === -1);
+
     box.innerHTML = '';
     if (!list.length) {
         box.innerHTML = '<div class="card announcement-card"><p class="announcement-body">No announcements found.</p></div>';
@@ -196,6 +198,7 @@ function renderAnnouncementsPage() {
     }
 
     list.forEach((a) => {
+        const key = announcementKey(a);
         const card = document.createElement('div');
         card.className = 'card announcement-card';
         card.innerHTML = `
@@ -205,8 +208,18 @@ function renderAnnouncementsPage() {
             </div>
             <p class="announcement-category">${escapeHtml((a.source || 'general').toUpperCase())}</p>
             <p class="announcement-body">${escapeHtml(a.message || '')}</p>
+            <button type="button" class="announcement-close" data-hide-key="${escapeHtml(key)}">×</button>
         `;
         box.appendChild(card);
+    });
+
+    box.querySelectorAll('.announcement-close').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-hide-key') || '';
+            if (!key) return;
+            hideAnnouncement(key);
+            renderAnnouncementsPage();
+        });
     });
 }
 
@@ -258,4 +271,23 @@ function escapeHtml(v) {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+}
+
+function announcementKey(a) {
+    const src = String(a.source || '');
+    const title = String(a.title || '');
+    const time = String(a.created_at || '');
+    return src + '|' + title + '|' + time;
+}
+
+function getHiddenAnnouncements() {
+    const raw = localStorage.getItem('hiddenAnnouncements') || '';
+    if (!raw) return [];
+    return raw.split('||').filter((x) => x !== '');
+}
+
+function hideAnnouncement(key) {
+    const list = getHiddenAnnouncements();
+    if (list.indexOf(key) === -1) list.push(key);
+    localStorage.setItem('hiddenAnnouncements', list.join('||'));
 }

@@ -6,6 +6,8 @@ const API = {
     profile: APP_BASE + '/backend/teacher/get_teacher_profile.php',
     announcements: APP_BASE + '/backend/teacher/get_announcements.php',
     createAnnouncement: APP_BASE + '/backend/teacher/create_announcement.php',
+    updateAnnouncement: APP_BASE + '/backend/teacher/update_announcement.php',
+    deleteAnnouncement: APP_BASE + '/backend/teacher/delete_announcement.php',
     classStudents: APP_BASE + '/backend/teacher/get_class_students.php',
     classSubjects: APP_BASE + '/backend/teacher/get_class_subjects.php',
     enterGrades: APP_BASE + '/backend/teacher/enter_grades.php',
@@ -16,7 +18,8 @@ var state = {
     user: null,
     classes: [],
     announcements: [],
-    profile: null
+    profile: null,
+    editAnnouncementId: 0
 };
 
 function el(id) {
@@ -54,7 +57,6 @@ function bindNavigation() {
 
 function bindEvents() {
     el('logoutBtn').addEventListener('click', logout);
-    el('openProfileBtn').addEventListener('click', function () { switchPage('profile'); });
 
     el('classSelectForGrading').addEventListener('change', onGradingClassChange);
     el('sectionSelectForGrading').addEventListener('change', onGradingSectionChange);
@@ -90,8 +92,7 @@ function switchPage(pageName) {
     var titleMap = {
         dashboard: 'Dashboard',
         grading: 'Grading',
-        announcements: 'Announcements',
-        profile: 'Profile'
+        announcements: 'Announcements'
     };
     el('pageTitle').textContent = titleMap[pageName] || 'Dashboard';
 }
@@ -118,8 +119,9 @@ function renderDashboard(dashboard) {
     setText('pendingGrading', 0);
 
     var box = el('gradingStatusContainer');
-    box.innerHTML = '';
+    if (!box) return;
 
+    box.innerHTML = '';
     if (state.classes.length === 0) {
         box.innerHTML = '<p>No assigned class yet.</p>';
         return;
@@ -186,7 +188,11 @@ function renderAnnouncements() {
             '</div>' +
             '<p class="announcement-category">' + escapeHtml(String(category).toUpperCase()) + '</p>' +
             '<p class="announcement-body">' + escapeHtml(a.message || '') + '</p>' +
-            fileHtml;
+            fileHtml +
+            '<button type="button" class="announcement-close" onclick="deleteAnnouncement(' + Number(a.id || 0) + ')">×</button>' +
+            '<div class="announcement-actions">' +
+            '<button type="button" class="btn btn-secondary btn-small" onclick="editAnnouncement(' + Number(a.id || 0) + ')">Edit</button>' +
+            '</div>';
 
         box.appendChild(div);
     });
@@ -421,12 +427,24 @@ function gradeLetter(total) {
 }
 
 function openAnnouncementModal() {
+    state.editAnnouncementId = 0;
+    var title = el('announcementModalTitle');
+    if (title) title.textContent = 'New Announcement';
+    el('announcementTargetMode').disabled = false;
+    el('announcementTargetMode').value = 'single';
+    onAnnouncementTargetModeChange();
+    el('announcementTitle').value = '';
+    el('announcementContent').value = '';
+    el('announcementClassSelect').value = '';
+    removeAnnouncementFile();
+
     el('announcementModal').style.display = 'flex';
     showMessage('announcementInlineMessage', '', false);
 }
 
 function closeAnnouncementModal() {
     el('announcementModal').style.display = 'none';
+    el('announcementTargetMode').disabled = false;
     showMessage('announcementInlineMessage', '', false);
 }
 
@@ -464,6 +482,35 @@ async function saveAnnouncement() {
     if (title === '' || message === '') {
         showMessage('announcementInlineMessage', 'Please enter title and message.', true);
         return;
+    }
+
+    if (state.editAnnouncementId > 0) {
+        try {
+            var singleId = Number(el('announcementClassSelect').value || 0);
+            var fdEdit = new FormData();
+            fdEdit.append('announcement_id', String(state.editAnnouncementId));
+            fdEdit.append('title', title);
+            fdEdit.append('message', message);
+            fdEdit.append('class_id', String(singleId));
+
+            var fileInputEdit = el('announcementFile');
+            if (fileInputEdit.files && fileInputEdit.files[0]) {
+                fdEdit.append('announcement_file', fileInputEdit.files[0]);
+            }
+
+            await postForm(API.updateAnnouncement, fdEdit);
+            closeAnnouncementModal();
+
+            var dataEdit = await getJSON(API.announcements + '?page=1&limit=50');
+            state.announcements = dataEdit.announcements || [];
+            renderAnnouncements();
+
+            showMessage('teacherPageMessage', 'Announcement updated.', false);
+            return;
+        } catch (err) {
+            showMessage('announcementInlineMessage', 'Failed to update announcement: ' + err.message, true);
+            return;
+        }
     }
 
     var classIds = [];
@@ -508,6 +555,42 @@ async function saveAnnouncement() {
         showMessage('teacherPageMessage', 'Announcement posted.', false);
     } catch (err) {
         showMessage('announcementInlineMessage', 'Failed to post announcement: ' + err.message, true);
+    }
+}
+
+function editAnnouncement(id) {
+    var list = state.announcements || [];
+    var item = list.find(function (a) { return Number(a.id || 0) === Number(id); });
+    if (!item) return;
+
+    state.editAnnouncementId = Number(id);
+    var title = el('announcementModalTitle');
+    if (title) title.textContent = 'Edit Announcement';
+
+    el('announcementTitle').value = String(item.title || '');
+    el('announcementContent').value = String(item.message || '');
+
+    el('announcementTargetMode').value = 'single';
+    el('announcementTargetMode').disabled = true;
+    onAnnouncementTargetModeChange();
+
+    el('announcementClassSelect').value = String(item.class_id || '');
+    removeAnnouncementFile();
+
+    el('announcementModal').style.display = 'flex';
+    showMessage('announcementInlineMessage', '', false);
+}
+
+async function deleteAnnouncement(id) {
+    if (!confirm('Delete this announcement?')) return;
+    try {
+        await postJSON(API.deleteAnnouncement, { announcement_id: Number(id) });
+        var data = await getJSON(API.announcements + '?page=1&limit=50');
+        state.announcements = data.announcements || [];
+        renderAnnouncements();
+        showMessage('teacherPageMessage', 'Announcement deleted.', false);
+    } catch (err) {
+        showMessage('teacherPageMessage', 'Failed to delete announcement: ' + err.message, true);
     }
 }
 

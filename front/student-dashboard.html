@@ -15,7 +15,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-graduation-cap"></i>
-                    <span>StudentHub</span>
+                    <span>Student</span>
                 </div>
                 <button class="hamburger" id="hamburgerBtn">
                     <i class="fas fa-bars"></i>
@@ -36,10 +36,6 @@
                     <span>Announcements</span>
                     <span class="badge" id="announcementBadge">0</span>
                 </a>
-                <a href="#profile" class="nav-item" data-page="profile">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
-                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -57,11 +53,6 @@
                 <div class="header-left">
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
-                <div class="header-right">
-                    <button class="profile-icon-btn" type="button" title="My Profile" onclick="openMyProfile()">
-                        <i class="fas fa-user-circle"></i>
-                    </button>
-                </div>
             </header>
 
             <!-- Content Area -->
@@ -69,6 +60,43 @@
 
                 <!-- DASHBOARD PAGE -->
                 <div id="dashboard" class="page active">
+                    <!-- Profile first -->
+                    <div class="card profile-card">
+                        <div class="profile-header">
+                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h3 id="profileName">John Doe</h3>
+                                <p id="profileGrade">Grade 9</p>
+                                <p id="profileGPA">GPA: 3.75</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-details">
+                            <div class="detail-row">
+                                <label>Student ID:</label>
+                                <p id="profileID">STU12345</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Date of Birth:</label>
+                                <p id="profileDOB">January 15, 2009</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Email:</label>
+                                <p id="profileEmail">john.doe@school.com</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Contact:</label>
+                                <p id="profileContact">+1 (555) 123-4567</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Address:</label>
+                                <p id="profileAddress">123 School Street, City, Country</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="dashboard-grid">
                         <div class="card stat-card">
                             <div class="stat-icon gpa">
@@ -97,51 +125,6 @@
                             <div class="stat-content">
                                 <p class="stat-label">Announcements</p>
                                 <p class="stat-value" id="dashboardAnnouncements">5</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Grades -->
-                    <div class="card recent-section">
-                        <h3>Recent Grades</h3>
-                        <div id="recentGradesContainer" class="grades-list">
-                            <div class="grade-item">
-                                <div class="grade-info">
-                                    <p class="subject">Mathematics</p>
-                                    <p class="assessment">Quiz 1</p>
-                                </div>
-                                <span class="grade-badge A">A+</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Announcements -->
-                    <div class="card announcements-section">
-                        <h3>Recent Announcements</h3>
-                        <div id="recentAnnouncementsContainer" class="announcements-list">
-                            <div class="announcement-item">
-                                <div class="announcement-header">
-                                    <p class="announcement-title">Welcome to School Portal</p>
-                                    <p class="announcement-date">Today</p>
-                                </div>
-                                <p class="announcement-text">Welcome to our student portal. Use this platform to track your grades, assignments, and schedules.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Upcoming Events -->
-                    <div class="card upcoming-section">
-                        <h3>Upcoming Events</h3>
-                        <div id="upcomingEventsContainer" class="events-list">
-                            <div class="event-item">
-                                <div class="event-date">
-                                    <p class="date-day">21</p>
-                                    <p class="date-month">Feb</p>
-                                </div>
-                                <div class="event-info">
-                                    <p class="event-name">Math Test</p>
-                                    <p class="event-time">10:00 AM</p>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -190,7 +173,7 @@
                         </div>
                     </div>
 
-                    <div id="announcementsContainer" class="announcements-container">
+                    <div id="announcementsContainer" class="announcements-container announcements-grid">
                         <div class="card announcement-card">
                             <div class="announcement-header">
                                 <h3>Welcome to Portal</h3>
@@ -198,49 +181,6 @@
                             </div>
                             <p class="announcement-category">School</p>
                             <p class="announcement-body">Welcome to our new student portal system.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PROFILE PAGE -->
-                <div id="profile" class="page">
-                    <div class="page-header">
-                        <h2>Student Profile</h2>
-                    </div>
-
-                    <div class="card profile-card">
-                        <div class="profile-header">
-                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div class="profile-info">
-                                <h3 id="profileName">John Doe</h3>
-                                <p id="profileGrade">Grade 9</p>
-                                <p id="profileGPA">GPA: 3.75</p>
-                            </div>
-                        </div>
-
-                        <div class="profile-details">
-                            <div class="detail-row">
-                                <label>Student ID:</label>
-                                <p id="profileID">STU12345</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Date of Birth:</label>
-                                <p id="profileDOB">January 15, 2009</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Email:</label>
-                                <p id="profileEmail">john.doe@school.com</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Contact:</label>
-                                <p id="profileContact">+1 (555) 123-4567</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Address:</label>
-                                <p id="profileAddress">123 School Street, City, Country</p>
-                            </div>
                         </div>
                     </div>
                 </div>

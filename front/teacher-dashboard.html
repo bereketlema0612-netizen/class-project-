@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-chalkboard-teacher"></i>
-                    <span>TeacherHub</span>
+                    <span>Teacher</span>
                 </div>
             </div>
 
@@ -31,10 +31,6 @@
                     <i class="fas fa-bullhorn"></i>
                     <span>Announcements</span>
                 </a>
-                <a href="#profile" class="nav-item" data-page="profile">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
-                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -50,17 +46,41 @@
                 <div class="header-left">
                     <h1 id="pageTitle">Dashboard</h1>
                 </div>
-                <div class="header-right">
-                    <button id="openProfileBtn" class="profile-icon-btn" type="button" title="My Profile">
-                        <i class="fas fa-user-circle"></i>
-                    </button>
-                </div>
             </header>
 
             <div class="content">
                 <div id="teacherPageMessage" class="message" style="display:none;"></div>
 
                 <section id="dashboard" class="page active">
+                    <!-- Profile first -->
+                    <div class="card profile-card">
+                        <div class="profile-header">
+                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h3 id="profileName">-</h3>
+                                <p id="profileDept">-</p>
+                                <p id="profileEmpID">-</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-details">
+                            <div class="detail-row">
+                                <label>Email:</label>
+                                <p id="profileEmail">-</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Phone:</label>
+                                <p id="profilePhone">-</p>
+                            </div>
+                            <div class="detail-row">
+                                <label>Office:</label>
+                                <p id="profileOffice">-</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="dashboard-grid">
                         <div class="card stat-card">
                             <div class="stat-icon assignments">
@@ -89,10 +109,6 @@
                                 <p class="stat-value" id="totalStudents">0</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="card">
-                        <h3>Grading Status</h3>
-                        <div id="gradingStatusContainer"></div>
                     </div>
                 </section>
 
@@ -158,43 +174,11 @@
                 </section>
 
                 <section id="announcements" class="page">
-                    <div class="page-header">
+                    <div class="page-header page-header-actions">
                         <h2>Announcements</h2>
+                        <button id="openAnnouncementModalBtn" class="btn btn-primary" type="button">New Announcement</button>
                     </div>
                     <div id="announcementsContainer" class="announcements-container"></div>
-                </section>
-
-                <section id="profile" class="page">
-                    <div class="page-header">
-                        <h2>Teacher Profile</h2>
-                    </div>
-                    <div class="card profile-card">
-                        <div class="profile-header">
-                            <div id="profileAvatar" class="profile-avatar profile-avatar-icon" aria-label="Profile">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div class="profile-info">
-                                <h3 id="profileName">-</h3>
-                                <p id="profileDept">-</p>
-                                <p id="profileEmpID">-</p>
-                            </div>
-                        </div>
-
-                        <div class="profile-details">
-                            <div class="detail-row">
-                                <label>Email:</label>
-                                <p id="profileEmail">-</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Phone:</label>
-                                <p id="profilePhone">-</p>
-                            </div>
-                            <div class="detail-row">
-                                <label>Office:</label>
-                                <p id="profileOffice">-</p>
-                            </div>
-                        </div>
-                    </div>
                 </section>
             </div>
         </main>
@@ -202,7 +186,7 @@
 
     <div id="announcementModal" class="modal" style="display:none;">
         <div class="modal-box">
-            <h3>New Announcement</h3>
+            <h3 id="announcementModalTitle">New Announcement</h3>
 
             <div class="form-group">
                 <label for="announcementTargetMode">Target Mode</label>

@@ -273,6 +273,48 @@ function fillAssignSelects() {
         opt.textContent = c.name || ('Class ' + c.id);
         classSelect.appendChild(opt);
     });
+
+    classSelect.onchange = updateSubjectsForClass;
+    classSelect.oninput = updateSubjectsForClass;
+    updateSubjectsForClass();
+}
+
+function updateSubjectsForClass() {
+    const classSelect = document.getElementById('assignClassId');
+    const subjectSelect = document.getElementById('assignSubjectName');
+    if (!classSelect || !subjectSelect) return;
+
+    const classId = String(classSelect.value || '');
+    const current = state.classes.find((c) => String(c.id || '') === classId);
+    const name = String(current?.name || '').toLowerCase();
+    const section = String(current?.section || '').toLowerCase();
+    let grade = parseInt(current?.grade_level || '0', 10);
+    if (!grade) {
+        const gradeMatch = name.match(/(\d+)/);
+        grade = gradeMatch ? parseInt(gradeMatch[1], 10) : 0;
+    }
+    const isNatural = section.includes('natural') || name.includes('natural');
+    const isSocial = section.includes('social') || name.includes('social');
+
+    const subjects_9_10 = ['Physics', 'Chemistry', 'Biology', 'English', 'Mathematics', 'Civic', 'Sport'];
+    const subjects_11_12_natural = ['Physics', 'Chemistry', 'Biology', 'English', 'Mathematics', 'IT'];
+    const subjects_11_12_social = ['Physics', 'Chemistry', 'Biology', 'English', 'Mathematics', 'Economics'];
+
+    let list = [];
+    if (!classId) list = [];
+    else if (grade === 9 || grade === 10) list = subjects_9_10;
+    else if (grade === 11 || grade === 12) {
+        if (isSocial) list = subjects_11_12_social;
+        else list = subjects_11_12_natural;
+    } else list = subjects_9_10;
+
+    subjectSelect.innerHTML = '<option value="">-- Select subject --</option>';
+    list.forEach((s) => {
+        const op = document.createElement('option');
+        op.value = s;
+        op.textContent = s;
+        subjectSelect.appendChild(op);
+    });
 }
 
 function renderAssignedTeachers() {

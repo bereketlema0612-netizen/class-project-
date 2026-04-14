@@ -22,10 +22,15 @@ if ($count === 0) {
 }
 
 $classes = [];
-$res = $conn->query("SELECT id, name FROM classes ORDER BY id ASC");
+$res = $conn->query("SELECT id, name, grade_level, section FROM classes ORDER BY id ASC");
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        $classes[] = ['id' => (int)$row['id'], 'name' => (string)$row['name']];
+        $classes[] = [
+            'id' => (int)$row['id'],
+            'name' => (string)$row['name'],
+            'grade_level' => (string)($row['grade_level'] ?? ''),
+            'section' => (string)($row['section'] ?? '')
+        ];
     }
 }
 
