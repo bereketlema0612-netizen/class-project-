@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css?v=20260414-3">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-user-shield"></i>
+                    <span>AdminHub</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#register" class="nav-item" data-page="register">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Register</span>
+                </a>
+                <a href="#assign" class="nav-item" data-page="assign">
+                    <i class="fas fa-user-check"></i>
+                    <span>Assign Users</span>
+                </a>
+                <a href="#all-registrations" class="nav-item" data-page="all-registrations">
+                    <i class="fas fa-list-check"></i>
+                    <span>All Registrations</span>
+                    <span class="badge" id="registrationBadge">0</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn" onclick="handleAdminLogout(event)">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Dashboard</h1>
+                </div>
+            </header>
+
+            <div class="content">
+                <div id="dashboard" class="page active">
+                    <div class="dashboard-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon gpa">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Students</p>
+                                <p class="stat-value" id="totalStudents">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon assignments">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Teachers</p>
+                                <p class="stat-value" id="totalTeachers">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon notifications">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Registrations</p>
+                                <p class="stat-value" id="dashPendingCount">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon attendance">
+                                <i class="fas fa-circle-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Total Approved</p>
+                                <p class="stat-value" id="totalApproved">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon admin">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="stat-content">
+                                <p class="stat-label">Admins</p>
+                                <p class="stat-value" id="totalAdmins">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="register" class="page">
+                    <div class="page-header">
+                        <h2>Register User</h2>
+                    </div>
+
+                    <div class="card form-card">
+                        <form id="registrationForm" onsubmit="handleRegistration(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Register As</label>
+                                    <div class="role-toggle" role="group" aria-label="Register As">
+                                        <button type="button" class="role-btn active" data-role="student" onclick="setRegisterRole('student')">Student</button>
+                                        <button type="button" class="role-btn" data-role="teacher" onclick="setRegisterRole('teacher')">Teacher</button>
+                                    </div>
+                                    <select id="registerRole" class="form-control visually-hidden" name="role" onchange="setRegisterRole(this.value)">
+                                        <option value="student">Student</option>
+                                        <option value="teacher">Teacher</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>First Name *</label>
+                                    <input type="text" class="form-control" name="fname" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Middle Name</label>
+                                    <input type="text" class="form-control" name="mname">
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Name *</label>
+                                    <input type="text" class="form-control" name="lname" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" class="form-control" name="email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of Birth *</label>
+                                    <input type="date" class="form-control" name="dateOfBirth" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Age *</label>
+                                    <input type="number" class="form-control" name="age" min="10" max="80" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Sex *</label>
+                                    <select class="form-control" name="sex" required>
+                                        <option value="">-- Select --</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="studentFields">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Grade Level *</label>
+                                        <select class="form-control" name="gradeLevel">
+                                            <option value="">-- Select Grade --</option>
+                                            <option value="Grade 9">Grade 9</option>
+                                            <option value="Grade 10">Grade 10</option>
+                                            <option value="Grade 11">Grade 11</option>
+                                            <option value="Grade 12">Grade 12</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Stream</label>
+                                        <select class="form-control" name="stream">
+                                            <option value="">-- Select Stream --</option>
+                                            <option value="natural">Natural</option>
+                                            <option value="social">Social</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group full">
+                                        <label>Address *</label>
+                                        <textarea class="form-control" name="address" rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Parent Name *</label>
+                                        <input type="text" class="form-control" name="parentName">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Parent Phone *</label>
+                                        <input type="tel" class="form-control" name="parentPhone">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="teacherFields" style="display:none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Department *</label>
+                                        <select class="form-control" name="department">
+                                            <option value="">-- Select Department --</option>
+                                            <option value="Mathematics">Mathematics</option>
+                                            <option value="English">English</option>
+                                            <option value="Science">Science</option>
+                                            <option value="History">History</option>
+                                            <option value="Geography">Geography</option>
+                                            <option value="PE">Physical Education</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Subject *</label>
+                                        <input type="text" class="form-control" name="subject">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group full">
+                                        <label>Address *</label>
+                                        <textarea class="form-control" name="address" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="reset" class="btn btn-secondary">Clear</button>
+                                <button type="submit" class="btn btn-primary">Register</button>
+                            </div>
+                            <div class="form-success-message" id="registerMessage" role="status" aria-live="polite"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="assign" class="page">
+                    <div class="page-header">
+                        <h2>Assign Teacher To Class</h2>
+                    </div>
+
+                    <div class="card form-card">
+                        <form onsubmit="handleAssignTeacher(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Teacher</label>
+                                    <select id="assignTeacherUsername" class="form-control" required>
+                                        <option value="">-- Select teacher --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Class</label>
+                                    <select id="assignClassId" class="form-control" required>
+                                        <option value="">-- Select class --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Subject</label>
+                                    <input id="assignSubjectName" type="text" class="form-control" placeholder="Subject name" required>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Assign Teacher</button>
+                            </div>
+                            <div id="assignMessage" class="form-success-message" role="status" aria-live="polite"></div>
+                        </form>
+                    </div>
+
+                    <div class="card table-card">
+                        <h3>Assigned Teachers</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Teacher</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignedTeachersBody">
+                                <tr><td colspan="3" style="text-align:center;color:#6b7280;">No assignments yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="all-registrations" class="page">
+                    <div class="page-header">
+                        <h2>All Registrations</h2>
+                        <div class="assign-tabs">
+                            <button id="recordsTabStudents" type="button" class="assign-tab active" onclick="switchAllRecordsTab('students')">Student Records</button>
+                            <button id="recordsTabTeachers" type="button" class="assign-tab" onclick="switchAllRecordsTab('teachers')">Teacher Records</button>
+                        </div>
+                    </div>
+
+                    <div id="studentRecordsPanel" class="records-panel active">
+                        <div class="filter-section">
+                            <select id="studentGradeFilter" class="filter-select">
+                                <option value="">All Grades</option>
+                            </select>
+                            <input type="text" id="studentSearchInput" class="filter-select" placeholder="Search by name or username">
+                            <button type="button" class="btn btn-primary" onclick="loadStudentRecords()">Load Students</button>
+                        </div>
+
+                        <div class="card table-card" id="studentRecordsTableCard" style="display:none;">
+                            <div id="studentManageMessage" class="form-success-message" role="status" aria-live="polite"></div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Full Name</th>
+                                        <th>Grade</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentRecordsTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center;color:#6b7280;">Select filters and click "Load Students"</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="teacherRecordsPanel" class="records-panel">
+                        <div class="card table-card">
+                            <h3>Teacher Records</h3>
+                            <div id="teacherManageMessage" class="form-success-message" role="status" aria-live="polite"></div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Full Name</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacherRecordsTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center;color:#6b7280;">No teachers found</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="admin-script.js?v=20260414-3"></script>
+</body>
+</html>
+
+
