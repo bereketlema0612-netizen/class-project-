@@ -1,0 +1,160 @@
+/* Admin dashboard additions to match student styling */
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group.full {
+    grid-column: 1 / -1;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.form-success-message {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+    font-size: 13px;
+    border: 1px solid transparent;
+}
+
+.form-success-message.show {
+    display: block;
+}
+
+.form-success-message.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border-color: #a7f3d0;
+}
+
+.form-success-message.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.assign-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.assign-tab {
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.assign-tab.active {
+    background: var(--blue-header);
+    color: #ffffff;
+    border-color: var(--blue-header);
+}
+
+.role-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.role-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.role-btn.active {
+    background: var(--blue-header);
+    color: #ffffff;
+    border-color: var(--blue-header);
+    box-shadow: var(--shadow-sm);
+}
+
+.visually-hidden {
+    position: absolute !important;
+    height: 1px;
+    width: 1px;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap;
+    border: 0;
+    padding: 0;
+    margin: -1px;
+}
+
+.records-panel {
+    display: none;
+}
+
+.records-panel.active {
+    display: block;
+}
+
+.filter-section {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-select {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.status-badge.active {
+    background-color: var(--success-color);
+}
+
+.status-badge.inactive {
+    background-color: var(--danger-color);
+}
+
+.stat-icon.admin {
+    background: linear-gradient(135deg, #0ea5e9 0%, #22d3ee 100%);
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

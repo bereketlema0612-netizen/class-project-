@@ -1,0 +1,83 @@
+.recent-section,
+.announcements-section,
+.upcoming-section {
+    margin-bottom: 20px;
+}
+
+.recent-section h3,
+.announcements-section h3,
+.upcoming-section h3 {
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+.grades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.grade-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.grade-info {
+    flex: 1;
+}
+
+.grade-info .subject {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.grade-info .assessment {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.grade-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 12px;
+    color: white;
+}
+
+.grade-badge.A {
+    background-color: #10b981;
+}
+
+.grade-badge.B {
+    background-color: #3b82f6;
+}
+
+.grade-badge.C {
+    background-color: #f59e0b;
+}
+
+.grade-badge.D {
+    background-color: #ef4444;
+}
+
+.grade-badge.F {
+    background-color: #6b7280;
+}
+
+.student-name-display {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.grades-table-card {
+    padding: 0;
+    overflow: hidden;
+}
